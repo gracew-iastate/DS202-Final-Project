@@ -21,4 +21,20 @@ Grace Wu, Naomi Mauss
 
 ```{r}
 Health <- read.csv("C:\\Users\\Grace\\Downloads\\500_Cities__Local_Data_for_Better_Health__2019_release_20250331.csv")
+View(Health)
 ```
+
+#### Data Cleaning
+```{r}
+
+```
+
+#### Marginal Summaries
+```{r}
+head(Health)
+dim(Health)
+str(Health)
+summary(Health)
+
+```
+
