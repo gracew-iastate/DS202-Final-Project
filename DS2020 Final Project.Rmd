@@ -2,7 +2,7 @@
 title: "DS2020 Final Project"
 output: html_document
 date: "`r Sys.Date()`"
-author: "Grace Wu, Naomi Mauss
+author: "Grace Wu, Naomi Mauss"
 ---
 
 ```{r setup, include=FALSE}
