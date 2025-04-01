@@ -1,7 +1,6 @@
 ---
 title: "DS2020 Final Project"
-output: github document
-date: "`r Sys.Date()`"
+output: github_document
 author: "Grace Wu, Naomi Mauss"
 ---
 
@@ -9,9 +8,7 @@ author: "Grace Wu, Naomi Mauss"
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## DS2020 Final Project: Health Data in 500 Cities
-
-Grace Wu, Naomi Mauss
+## Health Data in 500 Cities
 
 ### Data
 
@@ -20,7 +17,8 @@ Grace Wu, Naomi Mauss
 -   This dataset includes information regarding chronic diseases related to three categories (unhalthy behaviors, health outcomes, and prevention). The data was provided by the CDC and consists of 500 of the largest cities.
 
 ```{r}
-Health <- read.csv("C:\\Users\\songb\\Downloads\\500_Cities__Local_Data_for_Better_Health__2019_release_20250331.csv")
+library(tidyverse)
+Health <- read.csv("C:\\Users\\Grace\\Downloads\\500_Cities__Local_Data_for_Better_Health__2019_release_20250331.csv")
 ```
 
 #### Data Cleaning
