@@ -1,6 +1,6 @@
 ---
 title: "DS2020 Final Project"
-output: html_document
+output: github document
 date: "`r Sys.Date()`"
 author: "Grace Wu, Naomi Mauss"
 ---
