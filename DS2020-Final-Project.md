@@ -17,26 +17,48 @@ Grace Wu, Naomi Mauss
 library(tidyverse)
 ```
 
+    ## Warning: package 'tidyverse' was built under R version 4.4.2
+
+    ## Warning: package 'ggplot2' was built under R version 4.4.2
+
+    ## Warning: package 'dplyr' was built under R version 4.4.2
+
+    ## Warning: package 'stringr' was built under R version 4.4.1
+
     ## ── Attaching core tidyverse packages ──────────────────────── tidyverse 2.0.0 ──
     ## ✔ dplyr     1.1.4     ✔ readr     2.1.5
     ## ✔ forcats   1.0.0     ✔ stringr   1.5.1
     ## ✔ ggplot2   3.5.1     ✔ tibble    3.2.1
-    ## ✔ lubridate 1.9.4     ✔ tidyr     1.3.1
-    ## ✔ purrr     1.0.4     
+    ## ✔ lubridate 1.9.3     ✔ tidyr     1.3.1
+    ## ✔ purrr     1.0.2     
     ## ── Conflicts ────────────────────────────────────────── tidyverse_conflicts() ──
     ## ✖ dplyr::filter() masks stats::filter()
     ## ✖ dplyr::lag()    masks stats::lag()
     ## ℹ Use the conflicted package (<http://conflicted.r-lib.org/>) to force all conflicts to become errors
 
 ``` r
-Health <- read.csv("C:\\Users\\Grace\\Downloads\\500_Cities__Local_Data_for_Better_Health__2019_release_20250331.csv")
+Health <- read.csv("C:\\Users\\songb\\Downloads\\500_Cities__Local_Data_for_Better_Health__2019_release_20250331.csv")
 ```
 
 #### Data Cleaning
 
 ``` r
+library(tidyverse)
+
 Health <- Health[complete.cases(Health), ]
+
+health_wide <- Health %>% pivot_wider(names_from = MeasureId, values_from = c(Data_Value, Low_Confidence_Limit, High_Confidence_Limit))
+
+health_wide_two <- Health %>%
+  group_by(StateDesc, CityName, MeasureId) %>%
+  summarize(
+    Data_Value = mean(Data_Value, na.rm = TRUE)
+  ) %>%
+  pivot_wider(names_from = MeasureId, values_from = c(Data_Value))
 ```
+
+    ## `summarise()` has grouped output by 'StateDesc', 'CityName'. You can override
+    ## using the `.groups` argument.
 
 #### Marginal Summaries
 
