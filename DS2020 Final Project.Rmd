@@ -24,8 +24,18 @@ Health <- read.csv("C:\\Users\\Grace\\Downloads\\500_Cities__Local_Data_for_Bett
 #### Data Cleaning
 ```{r}
 
+library(tidyverse)
+
 Health <- Health[complete.cases(Health), ]
 
+health_wide <- Health %>% pivot_wider(names_from = MeasureId, values_from = c(Data_Value, Low_Confidence_Limit, High_Confidence_Limit))
+
+health_wide_two <- Health %>%
+  group_by(StateDesc, CityName, MeasureId) %>%
+  summarize(
+    Data_Value = mean(Data_Value, na.rm = TRUE)
+  ) %>%
+  pivot_wider(names_from = MeasureId, values_from = c(Data_Value))
 ```
 
 #### Marginal Summaries
