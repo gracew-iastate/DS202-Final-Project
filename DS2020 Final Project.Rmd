@@ -20,11 +20,13 @@ Grace Wu, Naomi Mauss
 -   This dataset includes information regarding chronic diseases related to three categories (unhalthy behaviors, health outcomes, and prevention). The data was provided by the CDC and consists of 500 of the largest cities.
 
 ```{r}
-Health <- read.csv("C:\\Users\\Grace\\Downloads\\500_Cities__Local_Data_for_Better_Health__2019_release_20250331.csv")
+Health <- read.csv("C:\\Users\\songb\\Downloads\\500_Cities__Local_Data_for_Better_Health__2019_release_20250331.csv")
 ```
 
 #### Data Cleaning
 ```{r}
+
+Health <- Health[complete.cases(Health), ]
 
 ```
 
@@ -37,4 +39,26 @@ summary(Health)
 ```
 
 #### Questions to be addressed
+
+Consider the variables:
+- mental illness
+- binge drinking
+- asthma
+- arthritis
+- cancer
+- kidney disease
+- high blood pressure
+- diabetes
+- COPD
+
+When grouped by state, what states have the highest rates of each variable?
+When grouped by state, what states have the lowest rates of each variable?
+
+Which places have the highest rate of each variable?
+Which places have the lowest rate of each variable?
+
+Are there any trends regarding the least healthy places to live in the United States?
+Are there any trends regarding the healthiest places to live in the United States?
+
+The goal of this project is to determine where in the United States is the healthiest, and where is the least healthy. This information is important for people who might want to know how the places they move might affect their health.
 
