@@ -58,9 +58,266 @@ healthwfips <- inner_join(health, top_cities, by = "CityFIPS")
 
 ```
 
+The questions we want to consider are as such:
+
+Consider the variables:
+- mental illness
+- binge drinking
+- asthma
+- arthritis
+- cancer
+- kidney disease
+- high blood pressure
+- diabetes
+- COPD
+
+
+Group By State
 ```{r}
+# The population represented here is the sum of the considered cities
+# It represents a SAMPLE SIZE and is NOT IS NOT representative of the total population of those states
+state_means <- healthwfips %>% group_by(StateDesc) %>%
+  summarise(avgMentalIllness = mean(MHLTH), avgBingeDrinking = mean(BINGE), avgChildhoodAsthma = mean(CASTHMA), avgArthritis = mean(ARTHRITIS), avgCancer = mean(CANCER), avgKidneyDisease = mean(KIDNEY), avgHighBP = mean(BPHIGH), avgDiabetes = mean(DIABETES), avgCOPD = mean(COPD), statePopulation = sum(population))
+
+state_means <- state_means %>%
+  mutate(StateDesc = tolower(StateDesc))
+
+state_means$StateDesc[state_means$StateDesc == "south carolin"] <- "south carolina"
+state_means$StateDesc[state_means$StateDesc == "north carolin"] <- "north carolina"
+
+```
+
+
+
+- arthritis
+- kidney disease
+- high blood pressure
+- diabetes
+
+Map By State
+```{r}
+install.packages("viridis")
+library(ggplot2)
+library(dplyr)
+library(maps)      # for map_data
+library(viridis)   # optional: better color scale
+
+
+my_data <- state_means %>% mutate(state = tolower(StateDesc))
+map_data_combined <- left_join(states_map, my_data, by = c("region" = "state"))
+
+ggplot(map_data_combined, aes(x = long, y = lat, group = group, fill = avgMentalIllness)) +
+  geom_polygon(color = "white", size = 0.3) +
+  coord_fixed(1.3) +
+  scale_fill_viridis_c(
+    option = "plasma",
+    direction = -1,
+    name = "Avg Mental Illness Rate"
+  ) +
+  labs(
+    title = "Average Mental Illness Rate by State",
+    subtitle = "Data from CDC PLACES and ACS",
+    caption = "Source: CDC | Visualization by Naomi Mauss and Grace Wu"
+  ) +
+  theme_void() +
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 16, face = "bold"),
+    plot.subtitle = element_text(hjust = 0.5, size = 12),
+    plot.caption = element_text(hjust = 1, size = 8),
+    legend.position = "right",
+    legend.title = element_text(size = 10, face = "bold"),
+    legend.text = element_text(size = 8)
+  )
+
+ggplot(map_data_combined, aes(x = long, y = lat, group = group, fill = avgBingeDrinking)) +
+  geom_polygon(color = "white", size = 0.3) +
+  coord_fixed(1.3) +
+  scale_fill_viridis_c(
+    option = "plasma",
+    direction = -1,
+    name = "Avg Binge Drinking Rate"
+  ) +
+  labs(
+    title = "Average Binge Drinking Rate by State",
+    subtitle = "Data from CDC PLACES and ACS",
+    caption = "Source: CDC | Visualization by Naomi Mauss and Grace Wu"
+  ) +
+  theme_void() +
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 16, face = "bold"),
+    plot.subtitle = element_text(hjust = 0.5, size = 12),
+    plot.caption = element_text(hjust = 1, size = 8),
+    legend.position = "right",
+    legend.title = element_text(size = 10, face = "bold"),
+    legend.text = element_text(size = 8)
+  )
+
+ggplot(map_data_combined, aes(x = long, y = lat, group = group, fill = avgChildhoodAsthma)) +
+  geom_polygon(color = "white", size = 0.3) +
+  coord_fixed(1.3) +
+  scale_fill_viridis_c(
+    option = "plasma",
+    direction = -1,
+    name = "Avg Childhood Asthma Rate"
+  ) +
+  labs(
+    title = "Average Childhood Asthma Rate by State",
+    subtitle = "Data from CDC PLACES and ACS",
+    caption = "Source: CDC | Visualization by Naomi Mauss and Grace Wu"
+  ) +
+  theme_void() +
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 16, face = "bold"),
+    plot.subtitle = element_text(hjust = 0.5, size = 12),
+    plot.caption = element_text(hjust = 1, size = 8),
+    legend.position = "right",
+    legend.title = element_text(size = 10, face = "bold"),
+    legend.text = element_text(size = 8)
+  )
+
+ggplot(map_data_combined, aes(x = long, y = lat, group = group, fill = avgArthritis)) +
+  geom_polygon(color = "white", size = 0.3) +
+  coord_fixed(1.3) +
+  scale_fill_viridis_c(
+    option = "plasma",
+    direction = -1,
+    name = "Avg Arthritis Rate"
+  ) +
+  labs(
+    title = "Average Arthritis Rate by State",
+    subtitle = "Data from CDC PLACES and ACS",
+    caption = "Source: CDC | Visualization by Naomi Mauss and Grace Wu"
+  ) +
+  theme_void() +
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 16, face = "bold"),
+    plot.subtitle = element_text(hjust = 0.5, size = 12),
+    plot.caption = element_text(hjust = 1, size = 8),
+    legend.position = "right",
+    legend.title = element_text(size = 10, face = "bold"),
+    legend.text = element_text(size = 8)
+  )
+
+ggplot(map_data_combined, aes(x = long, y = lat, group = group, fill = avgKidneyDisease)) +
+  geom_polygon(color = "white", size = 0.3) +
+  coord_fixed(1.3) +
+  scale_fill_viridis_c(
+    option = "plasma",
+    direction = -1,
+    name = "Avg Kidney Disease Rate"
+  ) +
+  labs(
+    title = "Average Kidney Disease Rate by State",
+    subtitle = "Data from CDC PLACES and ACS",
+    caption = "Source: CDC | Visualization by Naomi Mauss and Grace Wu"
+  ) +
+  theme_void() +
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 16, face = "bold"),
+    plot.subtitle = element_text(hjust = 0.5, size = 12),
+    plot.caption = element_text(hjust = 1, size = 8),
+    legend.position = "right",
+    legend.title = element_text(size = 10, face = "bold"),
+    legend.text = element_text(size = 8)
+  )
+
+
+ggplot(map_data_combined, aes(x = long, y = lat, group = group, fill = avgHighBP)) +
+  geom_polygon(color = "white", size = 0.3) +
+  coord_fixed(1.3) +
+  scale_fill_viridis_c(
+    option = "plasma",
+    direction = -1,
+    name = "Avg High Blood Pressure Rate"
+  ) +
+  labs(
+    title = "Average High Blood Pressure Rate by State",
+    subtitle = "Data from CDC PLACES and ACS",
+    caption = "Source: CDC | Visualization by Naomi Mauss and Grace Wu"
+  ) +
+  theme_void() +
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 16, face = "bold"),
+    plot.subtitle = element_text(hjust = 0.5, size = 12),
+    plot.caption = element_text(hjust = 1, size = 8),
+    legend.position = "right",
+    legend.title = element_text(size = 10, face = "bold"),
+    legend.text = element_text(size = 8)
+  )
+
+
+ggplot(map_data_combined, aes(x = long, y = lat, group = group, fill = avgCancer)) +
+  geom_polygon(color = "white", size = 0.3) +
+  coord_fixed(1.3) +
+  scale_fill_viridis_c(
+    option = "plasma",
+    direction = -1,
+    name = "Avg Cancer Rate"
+  ) +
+  labs(
+    title = "Average Cancer Rate by State",
+    subtitle = "Data from CDC PLACES and ACS",
+    caption = "Source: CDC | Visualization by Naomi Mauss and Grace Wu"
+  ) +
+  theme_void() +
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 16, face = "bold"),
+    plot.subtitle = element_text(hjust = 0.5, size = 12),
+    plot.caption = element_text(hjust = 1, size = 8),
+    legend.position = "right",
+    legend.title = element_text(size = 10, face = "bold"),
+    legend.text = element_text(size = 8))
+
+ggplot(map_data_combined, aes(x = long, y = lat, group = group, fill = avgDiabetes)) +
+  geom_polygon(color = "white", size = 0.3) +
+  coord_fixed(1.3) +
+  scale_fill_viridis_c(
+    option = "plasma",
+    direction = -1,
+    name = "Avg Diabetes Rate"
+  ) +
+  labs(
+    title = "Average Diabetes Rate by State",
+    subtitle = "Data from CDC PLACES and ACS",
+    caption = "Source: CDC | Visualization by Naomi Mauss and Grace Wu"
+  ) +
+  theme_void() +
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 16, face = "bold"),
+    plot.subtitle = element_text(hjust = 0.5, size = 12),
+    plot.caption = element_text(hjust = 1, size = 8),
+    legend.position = "right",
+    legend.title = element_text(size = 10, face = "bold"),
+    legend.text = element_text(size = 8))
+
+
+ggplot(map_data_combined, aes(x = long, y = lat, group = group, fill = avgCOPD)) +
+  geom_polygon(color = "white", size = 0.3) +
+  coord_fixed(1.3) +
+  scale_fill_viridis_c(
+    option = "plasma",
+    direction = -1,
+    name = "Avg COPD Rate"
+  ) +
+  labs(
+    title = "Average COPD Rate by State",
+    subtitle = "Data from CDC PLACES and ACS",
+    caption = "Source: CDC | Visualization by Naomi Mauss and Grace Wu"
+  ) +
+  theme_void() +
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 16, face = "bold"),
+    plot.subtitle = element_text(hjust = 0.5, size = 12),
+    plot.caption = element_text(hjust = 1, size = 8),
+    legend.position = "right",
+    legend.title = element_text(size = 10, face = "bold"),
+    legend.text = element_text(size = 8)
+  )
 
 
 
 ```
+
+
+
 
