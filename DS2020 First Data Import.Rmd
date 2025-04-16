@@ -18,24 +18,26 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ```{r}
 library(tidyverse)
-Health <- read.csv("https://docs.google.com/spreadsheets/d/e/2PACX-1vSUQCYF9DCqMvA-CLuOg_WZBE4DNy8FwTynyv_HMW0am3mAAgHpN7dopDr-DQ0mFaEQhq--dDCmVw3i/pub?output=csv")
+Health <- read.csv("C:\\Users\\songb\\Downloads\\500_Cities__Local_Data_for_Better_Health__2019_release_20250331.csv")
 ```
 
 #### Data Cleaning
 ```{r}
 
 library(tidyverse)
+library(dplyr)
 
-# Health <- Health[complete.cases(Health), ]
-# 
-# health_wide <- Health %>% pivot_wider(names_from = MeasureId, values_from = c(Data_Value, Low_Confidence_Limit, High_Confidence_Limit))
-# 
-# health_wide_two <- Health %>%
-#   group_by(StateDesc, CityName, MeasureId) %>%
-#   summarize(
-#     Data_Value = mean(Data_Value, na.rm = TRUE)
-#   ) %>%
-#   pivot_wider(names_from = MeasureId, values_from = c(Data_Value))
+ Health <- Health[complete.cases(Health), ]
+ 
+ health_wide <- Health %>% pivot_wider(names_from = MeasureId, values_from = c(Data_Value, Low_Confidence_Limit, High_Confidence_Limit))
+ 
+ 
+ health_wide_two <- Health %>%
+   group_by(StateDesc, CityName, MeasureId, CityFIPS) %>%
+   summarize(
+     Data_Value = mean(Data_Value, na.rm = TRUE)
+   ) %>%
+   pivot_wider(names_from = MeasureId, values_from = c(Data_Value))
 
 ```
 
@@ -73,11 +75,11 @@ The goal of this project is to determine where in the United States is the healt
 
 
 ```{R}
-# install.packages("writexl")
-# 
-# library(writexl)
-# 
-# write_xlsx(health_wide_two, 'C:\\Users\\songb\\Desktop\\data.xlsx')
+ install.packages("writexl")
+ 
+ library(writexl)
+ 
+ write_xlsx(health_wide_two, 'C:\\Users\\songb\\Desktop\\data.xlsx')
 
 ```
 

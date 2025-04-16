@@ -1,0 +1,66 @@
+---
+title: "Data joining"
+author: "Naomi"
+date: "2025-04-16"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+This imports the cleaned dataset from the initial data creation step in Data Creation.Rmd
+```{r}
+health <- read.csv("https://docs.google.com/spreadsheets/d/e/2PACX-1vQeaKrReyifqjPVoWB2pYHAo54wLlybjEnMZiPP0i6tdpWb-RLqmwrCvhz8HVOBLCjEo_0qYmrnOkEo/pub?output=csv")
+
+```
+
+
+We now want to add the population level to the dataset
+```{r}
+library(readr)
+library(dplyr)
+library(tidycensus)
+library(tidyverse)
+
+# Get 2019 ACS 5-Year population estimates for all US places
+city_pop <- get_acs(
+  geography = "place",
+  variables = "B01003_001",  # Total population
+  year = 2019,
+  survey = "acs5",
+  output = "wide",
+  geometry = FALSE
+)
+
+# This converts the columns to a more readable format
+top_cities <- city_pop %>%
+  select(GEOID, NAME, B01003_001E) %>%  # GEOID is the FIPS code
+  rename(
+    fips = GEOID,
+    city = NAME,
+    population = B01003_001E
+  ) %>%
+  arrange(desc(population))
+
+# This ensures when we join our data the columns in health and top_cities have the same variable name
+top_cities <- rename(top_cities, CityFIPS = fips)
+
+#This casts top_cities as numeric so that it can be joined with the numeric CityFIPS column in health
+top_cities$CityFIPS <- as.numeric(top_cities$CityFIPS)
+
+# This is a slightly destructive join
+# It removes two cities from our original dataset because their FIPS are not in the ACS dataset
+# The fact that they are not in the ACS dataset means we probably don't care about them
+# And 498 cities is an acceptable number of datapoints for the scope of this project
+healthwfips <- inner_join(health, top_cities, by = "CityFIPS")
+
+```
+
+```{r}
+
+
+
+```
+
