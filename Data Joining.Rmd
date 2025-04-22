@@ -16,13 +16,24 @@ health <- read.csv("https://docs.google.com/spreadsheets/d/e/2PACX-1vQeaKrReyifq
 
 ```
 
+```{R}
 
-We now want to add the population level to the dataset
-```{r}
 library(readr)
 library(dplyr)
 library(tidycensus)
 library(tidyverse)
+
+```
+
+We now want to add the population level to the dataset
+
+
+# DO NOT KEEP RELOADING THIS!!!!!
+THE DATA CAN BE RETRIEVED FROM THE BOX FOLDER
+IT TAKES A LOT OF COMPUTATIONAL POWER TO RUN THE FOLLOWING CODE CHUNK
+THANK YOU : )
+
+```{R}
 
 # Get 2019 ACS 5-Year population estimates for all US places
 city_pop <- get_acs(
@@ -44,6 +55,10 @@ top_cities <- city_pop %>%
   ) %>%
   arrange(desc(population))
 
+```
+
+```{R}
+
 # This ensures when we join our data the columns in health and top_cities have the same variable name
 top_cities <- rename(top_cities, CityFIPS = fips)
 
@@ -57,6 +72,19 @@ top_cities$CityFIPS <- as.numeric(top_cities$CityFIPS)
 healthwfips <- inner_join(health, top_cities, by = "CityFIPS")
 
 ```
+
+
+```
+ install.packages("writexl")
+ 
+ library(writexl)
+ 
+ write_xlsx(healthwfips, 'C:\\Users\\songb\\Desktop\\healthwfips.xlsx')
+ write_xlsx(map_data_combined, 'C:\\Users\\songb\\Desktop\\map_data_combined.xlsx')
+ write_xlsx(healthwfips, 'C:\\Users\\songb\\Desktop\\healthwfips.xlsx')
+
+```
+
 
 The questions we want to consider are as such:
 
@@ -88,23 +116,34 @@ state_means$StateDesc[state_means$StateDesc == "north carolin"] <- "north caroli
 ```
 
 
-
-- arthritis
-- kidney disease
-- high blood pressure
-- diabetes
-
-Map By State
+Prepare the data to map by state
 ```{r}
-install.packages("viridis")
-library(ggplot2)
-library(dplyr)
-library(maps)      # for map_data
-library(viridis)   # optional: better color scale
+#install.packages("viridis")
+#library(ggplot2)
+#library(dplyr)
+#library(maps)      # for map_data
+#library(viridis)   # optional: better color scale
 
+states_map <- map_data("state")
 
 my_data <- state_means %>% mutate(state = tolower(StateDesc))
+
 map_data_combined <- left_join(states_map, my_data, by = c("region" = "state"))
+
+```
+
+```{R}
+ install.packages("writexl")
+ 
+ library(writexl)
+ 
+ write_xlsx(map_data_combined, 'C:\\Users\\songb\\Desktop\\ndata.xlsx')
+
+```
+
+
+Now we make the maps
+```
 
 ggplot(map_data_combined, aes(x = long, y = lat, group = group, fill = avgMentalIllness)) +
   geom_polygon(color = "white", size = 0.3) +
@@ -319,5 +358,10 @@ ggplot(map_data_combined, aes(x = long, y = lat, group = group, fill = avgCOPD))
 ```
 
 
+Perform lm analysis to determine correlation between variables
+```{r}
+
+
+```
 
 

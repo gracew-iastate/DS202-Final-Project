@@ -1,0 +1,34 @@
+---
+title: "Data joining"
+author: "Naomi"
+date: "2025-04-22"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+This imports the cleaned dataset from the initial data creation step in Data Creation.Rmd
+```{r}
+health <- read.csv("https://docs.google.com/spreadsheets/d/e/2PACX-1vR7nqD64aUipGpqb0eHsiwgniPeweKAFKA3J0ElL8vy76_PnWVr0Dm9Hp3bD4fPA_st8Qk5Zt_qCLbL/pub?gid=204126567&single=true&output=csv")
+
+```
+
+```{R}
+
+library(readr)
+library(dplyr)
+library(tidycensus)
+library(tidyverse)
+
+```
+
+
+```{R}
+
+top_vals <- health %>% group_by(health$avgMentalIllness) %>% top_n(5)
+
+
+```

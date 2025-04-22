@@ -12,7 +12,6 @@ editor_options:
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-
 # Illnesses by State
 
 This is the mental illness rate mapped by US state.
@@ -50,4 +49,3 @@ This is the diabetes rate mapped by US state.
 This is the COPD rate mapped by US state.
 
 ![COPD Rate by State](images//StateCOPDRate.png)
-
