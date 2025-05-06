@@ -30,5 +30,8 @@ library(tidyverse)
 
 top_vals <- health %>% group_by(health$avgMentalIllness) %>% top_n(5)
 
+data <-  tbl_df(health) %>%
+  group_by(avgMentalIllness) %>%
+  top_n(10)
 
 ```
