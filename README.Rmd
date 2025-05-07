@@ -1,5 +1,5 @@
 ---
-title: "Data joining"
+title: "README"
 author: "Naomi"
 date: "2025-04-16"
 output: github_document
@@ -32,6 +32,41 @@ library(tidycensus)
 library(tidyverse)
 
 ```
+
+
+```{R}
+
+ggplot(health, aes(y = COPD)) +
+  geom_boxplot(color = "steelblue") +
+  facet_wrap(~ StateDesc, scales = "free_y") +
+  labs(title = "COPD Rates by City Grouped by State",
+       x = "COPD Rate (%)",
+       y = NULL) +  # remove y-axis label
+  theme_minimal() +
+  theme(axis.text.y = element_blank(),  # remove city labels
+        axis.ticks.y = element_blank())
+
+
+health %>%
+  mutate(StateDesc = reorder(StateDesc, COPD, median)) %>%
+  ggplot(aes(y = COPD, x = StateDesc)) +
+    geom_boxplot(color = "steelblue") +
+    labs(title = "COPD Rates by City Grouped by State",
+         x = "COPD Rate (%)",
+         y = NULL) +  # remove y-axis label
+    theme_minimal() +
+    theme(axis.text.y = element_blank(),  # remove city labels
+          axis.ticks.y = element_blank(),
+          axis.text.x = element_text(angle = 45, hjust = 1)) +
+    scale_y_continuous(expand = expansion(mult = c(0, 0.1)))
+
+
+
+```
+
+
+
+
 
 We now want to add the population level to the dataset
 
