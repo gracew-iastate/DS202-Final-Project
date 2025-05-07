@@ -51,21 +51,43 @@ library(tidyverse)
     ## ℹ Use the conflicted package (<http://conflicted.r-lib.org/>) to force all conflicts to become errors
 
 ``` r
-health %>%
-  mutate(StateDesc = reorder(StateDesc, COPD, median)) %>%
-  ggplot(aes(y = COPD, x = StateDesc)) +
-    geom_boxplot(color = "steelblue") +
-    labs(title = "COPD Rates by City Grouped by State",
-         x = "COPD Rate (%)",
-         y = NULL) +
-    theme_minimal() +
-    theme(axis.text.y = element_blank(),
-          axis.ticks.y = element_blank(),
-          axis.text.x = element_text(angle = 45, hjust = 1)) +
-    scale_y_continuous(expand = expansion(mult = c(0, 0.1)))
+library(data.table)
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-3-1.png)<!-- -->
+    ## 
+    ## Attaching package: 'data.table'
+    ## 
+    ## The following objects are masked from 'package:lubridate':
+    ## 
+    ##     hour, isoweek, mday, minute, month, quarter, second, wday, week,
+    ##     yday, year
+    ## 
+    ## The following object is masked from 'package:purrr':
+    ## 
+    ##     transpose
+    ## 
+    ## The following objects are masked from 'package:dplyr':
+    ## 
+    ##     between, first, last
+
+``` r
+library(gt)
+```
+
+    ## Warning: package 'gt' was built under R version 4.4.1
+
+``` r
+library(xgboost)
+```
+
+    ## Warning: package 'xgboost' was built under R version 4.4.3
+
+    ## 
+    ## Attaching package: 'xgboost'
+    ## 
+    ## The following object is masked from 'package:dplyr':
+    ## 
+    ##     slice
 
 <!-- # DO NOT KEEP RELOADING THIS!!!!! -->
 <!-- THE DATA CAN BE RETRIEVED FROM THE BOX FOLDER IT TAKES A LOT OF -->
@@ -148,7 +170,13 @@ map_data_combined <- left_join(states_map, my_data, by = c("region" = "state"))
 # write_xlsx(state_means, 'C:\\Users\\songb\\Desktop\\state_means.xlsx')
 ```
 
-Now we make the maps
+``` r
+state_means[state_means == 'district of c'] <- 'DC'
+```
+
+Now we make the maps and box plots
+
+Mental Illness Map
 
 ``` r
 ggplot(map_data_combined, aes(x = long, y = lat, group = group, fill = avgMentalIllness)) +
@@ -183,6 +211,65 @@ ggplot(map_data_combined, aes(x = long, y = lat, group = group, fill = avgMental
 
 ![](README_files/figure-gfm/unnamed-chunk-7-1.png)<!-- -->
 
+Mental Illness Box Plot Desc
+
+``` r
+stored_means <- data.frame(health %>%
+  group_by(StateDesc) %>%
+  summarise(mean_COPD = mean(MHLTH, na.rm = TRUE)) %>%
+  arrange(mean_COPD))
+
+highlight_states <- c(
+  head(stored_means$StateDesc, 5),
+  tail(stored_means$StateDesc, 5)
+)
+
+health <- health %>%
+  mutate(Highlight = ifelse(StateDesc %in% highlight_states, "Highlight", "Other"))
+
+health$StateDesc <- reorder(health$StateDesc, health$MHLTH, FUN = median)
+
+
+health <- health %>%
+  mutate(Highlight = ifelse(StateDesc %in% highlight_states, "Highlight", "Other"),
+         StateDesc = factor(StateDesc, levels = stored_means$StateDesc))  # Ensure the correct order
+
+x_mapping <- health %>%
+  filter(Highlight == "Highlight") %>%
+  arrange(COPD) %>%
+  mutate(x_pos = as.numeric(factor(StateDesc)))
+
+# Plot
+ggplot() +
+  # Plot all "Other" states as points (mean) in the middle
+  stat_summary(data = filter(health, Highlight == "Other"),
+               aes(x = StateDesc, y = MHLTH),
+               fun = mean, geom = "point", shape = 21, fill = "gray60", size = 2) +
+
+  # Plot boxplots for highlighted states (top and bottom 5)
+  geom_boxplot(data = filter(health, Highlight == "Highlight"),
+               aes(x = StateDesc, y = MHLTH),
+               width = 0.8, fill = "steelblue", color = "black") +
+
+  scale_x_continuous(
+    breaks = x_mapping$x_pos[x_mapping$StateDesc %in% highlight_states],
+    labels = x_mapping$StateDesc[x_mapping$StateDesc %in% highlight_states]) +
+  
+  labs(title = "Mental Illness Rates by City: Highlighting Extremes by State",
+       x = "State (ordered by median mental illness)",
+       y = "Mental Illness Rate (%)") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 55, hjust = 1)) +
+  scale_x_discrete(limits = levels(health$StateDesc), labels = function(x) ifelse(x %in% highlight_states, x, ""))
+```
+
+    ## Scale for x is already present.
+    ## Adding another scale for x, which will replace the existing scale.
+
+![](README_files/figure-gfm/unnamed-chunk-8-1.png)<!-- -->
+
+Binge Drinking Map
+
 ``` r
 ggplot(map_data_combined, aes(x = long, y = lat, group = group, fill = avgBingeDrinking)) +
   geom_polygon(color = "white", size = 0.3) +
@@ -208,7 +295,66 @@ ggplot(map_data_combined, aes(x = long, y = lat, group = group, fill = avgBingeD
   )
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-7-2.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-9-1.png)<!-- -->
+
+Binge Drinking Box Plot Desc
+
+``` r
+stored_means <- health %>%
+  group_by(StateDesc) %>%
+  summarise(mean_COPD = mean(BINGE, na.rm = TRUE)) %>%
+  arrange(mean_COPD)
+
+highlight_states <- c(
+  head(stored_means$StateDesc, 5),
+  tail(stored_means$StateDesc, 5)
+)
+
+health <- health %>%
+  mutate(Highlight = ifelse(StateDesc %in% highlight_states, "Highlight", "Other"))
+
+health$StateDesc <- reorder(health$StateDesc, health$BINGE, FUN = median)
+
+
+health <- health %>%
+  mutate(Highlight = ifelse(StateDesc %in% highlight_states, "Highlight", "Other"),
+         StateDesc = factor(StateDesc, levels = stored_means$StateDesc))  # Ensure the correct order
+
+x_mapping <- health %>%
+  filter(Highlight == "Highlight") %>%
+  arrange(COPD) %>%
+  mutate(x_pos = as.numeric(factor(StateDesc)))
+
+# Plot
+ggplot() +
+  # Plot all "Other" states as points (mean) in the middle
+  stat_summary(data = filter(health, Highlight == "Other"),
+               aes(x = StateDesc, y = BINGE),
+               fun = mean, geom = "point", shape = 21, fill = "gray60", size = 2) +
+
+  # Plot boxplots for highlighted states (top and bottom 5)
+  geom_boxplot(data = filter(health, Highlight == "Highlight"),
+               aes(x = StateDesc, y = BINGE),
+               width = 0.8, fill = "steelblue", color = "black") +
+
+  scale_x_continuous(
+    breaks = x_mapping$x_pos[x_mapping$StateDesc %in% highlight_states],
+    labels = x_mapping$StateDesc[x_mapping$StateDesc %in% highlight_states]) +
+  
+  labs(title = "Binge Drinking Rates by City: Highlighting Extremes by State",
+       x = "State (ordered by median binge drinking)",
+       y = "Binge Drinking Rate (%)") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 55, hjust = 1)) +
+  scale_x_discrete(limits = levels(health$StateDesc), labels = function(x) ifelse(x %in% highlight_states, x, ""))
+```
+
+    ## Scale for x is already present.
+    ## Adding another scale for x, which will replace the existing scale.
+
+![](README_files/figure-gfm/unnamed-chunk-10-1.png)<!-- -->
+
+Asthma Map
 
 ``` r
 ggplot(map_data_combined, aes(x = long, y = lat, group = group, fill = avgChildhoodAsthma)) +
@@ -235,7 +381,66 @@ ggplot(map_data_combined, aes(x = long, y = lat, group = group, fill = avgChildh
   )
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-7-3.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-11-1.png)<!-- -->
+
+Childhood Asthma Box Plot Desc
+
+``` r
+stored_means <- health %>%
+  group_by(StateDesc) %>%
+  summarise(mean_COPD = mean(CASTHMA, na.rm = TRUE)) %>%
+  arrange(mean_COPD)
+
+highlight_states <- c(
+  head(stored_means$StateDesc, 5),
+  tail(stored_means$StateDesc, 5)
+)
+
+health <- health %>%
+  mutate(Highlight = ifelse(StateDesc %in% highlight_states, "Highlight", "Other"))
+
+health$StateDesc <- reorder(health$StateDesc, health$CASTHMA, FUN = median)
+
+
+health <- health %>%
+  mutate(Highlight = ifelse(StateDesc %in% highlight_states, "Highlight", "Other"),
+         StateDesc = factor(StateDesc, levels = stored_means$StateDesc))  # Ensure the correct order
+
+x_mapping <- health %>%
+  filter(Highlight == "Highlight") %>%
+  arrange(COPD) %>%
+  mutate(x_pos = as.numeric(factor(StateDesc)))
+
+# Plot
+ggplot() +
+  # Plot all "Other" states as points (mean) in the middle
+  stat_summary(data = filter(health, Highlight == "Other"),
+               aes(x = StateDesc, y = CASTHMA),
+               fun = mean, geom = "point", shape = 21, fill = "gray60", size = 2) +
+
+  # Plot boxplots for highlighted states (top and bottom 5)
+  geom_boxplot(data = filter(health, Highlight == "Highlight"),
+               aes(x = StateDesc, y = CASTHMA),
+               width = 0.8, fill = "steelblue", color = "black") +
+
+  scale_x_continuous(
+    breaks = x_mapping$x_pos[x_mapping$StateDesc %in% highlight_states],
+    labels = x_mapping$StateDesc[x_mapping$StateDesc %in% highlight_states]) +
+  
+  labs(title = "Childhood Asthma Rates by City: Highlighting Extremes by State",
+       x = "State (ordered by median childhood asthma)",
+       y = "Childhood Asthma Rate (%)") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 55, hjust = 1)) +
+  scale_x_discrete(limits = levels(health$StateDesc), labels = function(x) ifelse(x %in% highlight_states, x, ""))
+```
+
+    ## Scale for x is already present.
+    ## Adding another scale for x, which will replace the existing scale.
+
+![](README_files/figure-gfm/unnamed-chunk-12-1.png)<!-- -->
+
+Arthritis Map
 
 ``` r
 ggplot(map_data_combined, aes(x = long, y = lat, group = group, fill = avgArthritis)) +
@@ -262,7 +467,66 @@ ggplot(map_data_combined, aes(x = long, y = lat, group = group, fill = avgArthri
   )
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-7-4.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-13-1.png)<!-- -->
+
+Arthritis Box Plot Desc
+
+``` r
+stored_means <- health %>%
+  group_by(StateDesc) %>%
+  summarise(mean_COPD = mean(ARTHRITIS, na.rm = TRUE)) %>%
+  arrange(mean_COPD)
+
+highlight_states <- c(
+  head(stored_means$StateDesc, 5),
+  tail(stored_means$StateDesc, 5)
+)
+
+health <- health %>%
+  mutate(Highlight = ifelse(StateDesc %in% highlight_states, "Highlight", "Other"))
+
+health$StateDesc <- reorder(health$StateDesc, health$ARTHRITIS, FUN = median)
+
+
+health <- health %>%
+  mutate(Highlight = ifelse(StateDesc %in% highlight_states, "Highlight", "Other"),
+         StateDesc = factor(StateDesc, levels = stored_means$StateDesc))  # Ensure the correct order
+
+x_mapping <- health %>%
+  filter(Highlight == "Highlight") %>%
+  arrange(COPD) %>%
+  mutate(x_pos = as.numeric(factor(StateDesc)))
+
+# Plot
+ggplot() +
+  # Plot all "Other" states as points (mean) in the middle
+  stat_summary(data = filter(health, Highlight == "Other"),
+               aes(x = StateDesc, y = ARTHRITIS),
+               fun = mean, geom = "point", shape = 21, fill = "gray60", size = 2) +
+
+  # Plot boxplots for highlighted states (top and bottom 5)
+  geom_boxplot(data = filter(health, Highlight == "Highlight"),
+               aes(x = StateDesc, y = ARTHRITIS),
+               width = 0.8, fill = "steelblue", color = "black") +
+
+  scale_x_continuous(
+    breaks = x_mapping$x_pos[x_mapping$StateDesc %in% highlight_states],
+    labels = x_mapping$StateDesc[x_mapping$StateDesc %in% highlight_states]) +
+  
+  labs(title = "Arthritis Rates by City: Highlighting Extremes by State",
+       x = "State (ordered by median arthritis)",
+       y = "Childhood Arthritis Rate (%)") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 55, hjust = 1)) +
+  scale_x_discrete(limits = levels(health$StateDesc), labels = function(x) ifelse(x %in% highlight_states, x, ""))
+```
+
+    ## Scale for x is already present.
+    ## Adding another scale for x, which will replace the existing scale.
+
+![](README_files/figure-gfm/unnamed-chunk-14-1.png)<!-- -->
+
+Kidney Disease Map
 
 ``` r
 ggplot(map_data_combined, aes(x = long, y = lat, group = group, fill = avgKidneyDisease)) +
@@ -289,7 +553,66 @@ ggplot(map_data_combined, aes(x = long, y = lat, group = group, fill = avgKidney
   )
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-7-5.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-15-1.png)<!-- -->
+
+Kidney Disease Box Plot Desc
+
+``` r
+stored_means <- health %>%
+  group_by(StateDesc) %>%
+  summarise(mean_COPD = mean(KIDNEY, na.rm = TRUE)) %>%
+  arrange(mean_COPD)
+
+highlight_states <- c(
+  head(stored_means$StateDesc, 5),
+  tail(stored_means$StateDesc, 5)
+)
+
+health <- health %>%
+  mutate(Highlight = ifelse(StateDesc %in% highlight_states, "Highlight", "Other"))
+
+health$StateDesc <- reorder(health$StateDesc, health$KIDNEY, FUN = median)
+
+
+health <- health %>%
+  mutate(Highlight = ifelse(StateDesc %in% highlight_states, "Highlight", "Other"),
+         StateDesc = factor(StateDesc, levels = stored_means$StateDesc))  # Ensure the correct order
+
+x_mapping <- health %>%
+  filter(Highlight == "Highlight") %>%
+  arrange(COPD) %>%
+  mutate(x_pos = as.numeric(factor(StateDesc)))
+
+# Plot
+ggplot() +
+  # Plot all "Other" states as points (mean) in the middle
+  stat_summary(data = filter(health, Highlight == "Other"),
+               aes(x = StateDesc, y = KIDNEY),
+               fun = mean, geom = "point", shape = 21, fill = "gray60", size = 2) +
+
+  # Plot boxplots for highlighted states (top and bottom 5)
+  geom_boxplot(data = filter(health, Highlight == "Highlight"),
+               aes(x = StateDesc, y = KIDNEY),
+               width = 0.8, fill = "steelblue", color = "black") +
+
+  scale_x_continuous(
+    breaks = x_mapping$x_pos[x_mapping$StateDesc %in% highlight_states],
+    labels = x_mapping$StateDesc[x_mapping$StateDesc %in% highlight_states]) +
+  
+  labs(title = "Kidney Disease Rates by City: Highlighting Extremes by State",
+       x = "State (ordered by median kidney disease)",
+       y = "Kidney Disease Rate (%)") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 55, hjust = 1)) +
+  scale_x_discrete(limits = levels(health$StateDesc), labels = function(x) ifelse(x %in% highlight_states, x, ""))
+```
+
+    ## Scale for x is already present.
+    ## Adding another scale for x, which will replace the existing scale.
+
+![](README_files/figure-gfm/unnamed-chunk-16-1.png)<!-- -->
+
+High Blood Pressure Map
 
 ``` r
 ggplot(map_data_combined, aes(x = long, y = lat, group = group, fill = avgHighBP)) +
@@ -316,7 +639,66 @@ ggplot(map_data_combined, aes(x = long, y = lat, group = group, fill = avgHighBP
   )
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-7-6.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-17-1.png)<!-- -->
+
+High Blood Pressure Box Plot Desc
+
+``` r
+stored_means <- health %>%
+  group_by(StateDesc) %>%
+  summarise(mean_COPD = mean(BPHIGH, na.rm = TRUE)) %>%
+  arrange(mean_COPD)
+
+highlight_states <- c(
+  head(stored_means$StateDesc, 5),
+  tail(stored_means$StateDesc, 5)
+)
+
+health <- health %>%
+  mutate(Highlight = ifelse(StateDesc %in% highlight_states, "Highlight", "Other"))
+
+health$StateDesc <- reorder(health$StateDesc, health$BPHIGH, FUN = median)
+
+
+health <- health %>%
+  mutate(Highlight = ifelse(StateDesc %in% highlight_states, "Highlight", "Other"),
+         StateDesc = factor(StateDesc, levels = stored_means$StateDesc))  # Ensure the correct order
+
+x_mapping <- health %>%
+  filter(Highlight == "Highlight") %>%
+  arrange(COPD) %>%
+  mutate(x_pos = as.numeric(factor(StateDesc)))
+
+# Plot
+ggplot() +
+  # Plot all "Other" states as points (mean) in the middle
+  stat_summary(data = filter(health, Highlight == "Other"),
+               aes(x = StateDesc, y = BPHIGH),
+               fun = mean, geom = "point", shape = 21, fill = "gray60", size = 2) +
+
+  # Plot boxplots for highlighted states (top and bottom 5)
+  geom_boxplot(data = filter(health, Highlight == "Highlight"),
+               aes(x = StateDesc, y = BPHIGH),
+               width = 0.8, fill = "steelblue", color = "black") +
+
+  scale_x_continuous(
+    breaks = x_mapping$x_pos[x_mapping$StateDesc %in% highlight_states],
+    labels = x_mapping$StateDesc[x_mapping$StateDesc %in% highlight_states]) +
+  
+  labs(title = "High Blood Pressure Rates by City: Highlighting Extremes by State",
+       x = "State (ordered by median high blood pressure)",
+       y = "High Blood Pressure Rate (%)") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 55, hjust = 1)) +
+  scale_x_discrete(limits = levels(health$StateDesc), labels = function(x) ifelse(x %in% highlight_states, x, ""))
+```
+
+    ## Scale for x is already present.
+    ## Adding another scale for x, which will replace the existing scale.
+
+![](README_files/figure-gfm/unnamed-chunk-18-1.png)<!-- -->
+
+Cancer Map
 
 ``` r
 ggplot(map_data_combined, aes(x = long, y = lat, group = group, fill = avgCancer)) +
@@ -342,7 +724,66 @@ ggplot(map_data_combined, aes(x = long, y = lat, group = group, fill = avgCancer
     legend.text = element_text(size = 8))
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-7-7.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-19-1.png)<!-- -->
+
+Childhood Box Plot Desc
+
+``` r
+stored_means <- health %>%
+  group_by(StateDesc) %>%
+  summarise(mean_COPD = mean(CANCER, na.rm = TRUE)) %>%
+  arrange(mean_COPD)
+
+highlight_states <- c(
+  head(stored_means$StateDesc, 5),
+  tail(stored_means$StateDesc, 5)
+)
+
+health <- health %>%
+  mutate(Highlight = ifelse(StateDesc %in% highlight_states, "Highlight", "Other"))
+
+health$StateDesc <- reorder(health$StateDesc, health$CANCER, FUN = median)
+
+
+health <- health %>%
+  mutate(Highlight = ifelse(StateDesc %in% highlight_states, "Highlight", "Other"),
+         StateDesc = factor(StateDesc, levels = stored_means$StateDesc))  # Ensure the correct order
+
+x_mapping <- health %>%
+  filter(Highlight == "Highlight") %>%
+  arrange(COPD) %>%
+  mutate(x_pos = as.numeric(factor(StateDesc)))
+
+# Plot
+ggplot() +
+  # Plot all "Other" states as points (mean) in the middle
+  stat_summary(data = filter(health, Highlight == "Other"),
+               aes(x = StateDesc, y = CANCER),
+               fun = mean, geom = "point", shape = 21, fill = "gray60", size = 2) +
+
+  # Plot boxplots for highlighted states (top and bottom 5)
+  geom_boxplot(data = filter(health, Highlight == "Highlight"),
+               aes(x = StateDesc, y = CANCER),
+               width = 0.8, fill = "steelblue", color = "black") +
+
+  scale_x_continuous(
+    breaks = x_mapping$x_pos[x_mapping$StateDesc %in% highlight_states],
+    labels = x_mapping$StateDesc[x_mapping$StateDesc %in% highlight_states]) +
+  
+  labs(title = "Cancer Rates by City: Highlighting Extremes by State",
+       x = "State (ordered by median cancer)",
+       y = "Cancer Rate (%)") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 55, hjust = 1)) +
+  scale_x_discrete(limits = levels(health$StateDesc), labels = function(x) ifelse(x %in% highlight_states, x, ""))
+```
+
+    ## Scale for x is already present.
+    ## Adding another scale for x, which will replace the existing scale.
+
+![](README_files/figure-gfm/unnamed-chunk-20-1.png)<!-- -->
+
+Diabetes Map
 
 ``` r
 ggplot(map_data_combined, aes(x = long, y = lat, group = group, fill = avgDiabetes)) +
@@ -368,7 +809,66 @@ ggplot(map_data_combined, aes(x = long, y = lat, group = group, fill = avgDiabet
     legend.text = element_text(size = 8))
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-7-8.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-21-1.png)<!-- -->
+
+Childhood Box Plot Desc
+
+``` r
+stored_means <- health %>%
+  group_by(StateDesc) %>%
+  summarise(mean_COPD = mean(DIABETES, na.rm = TRUE)) %>%
+  arrange(mean_COPD)
+
+highlight_states <- c(
+  head(stored_means$StateDesc, 5),
+  tail(stored_means$StateDesc, 5)
+)
+
+health <- health %>%
+  mutate(Highlight = ifelse(StateDesc %in% highlight_states, "Highlight", "Other"))
+
+health$StateDesc <- reorder(health$StateDesc, health$DIABETES, FUN = median)
+
+
+health <- health %>%
+  mutate(Highlight = ifelse(StateDesc %in% highlight_states, "Highlight", "Other"),
+         StateDesc = factor(StateDesc, levels = stored_means$StateDesc))  # Ensure the correct order
+
+x_mapping <- health %>%
+  filter(Highlight == "Highlight") %>%
+  arrange(COPD) %>%
+  mutate(x_pos = as.numeric(factor(StateDesc)))
+
+# Plot
+ggplot() +
+  # Plot all "Other" states as points (mean) in the middle
+  stat_summary(data = filter(health, Highlight == "Other"),
+               aes(x = StateDesc, y = DIABETES),
+               fun = mean, geom = "point", shape = 21, fill = "gray60", size = 2) +
+
+  # Plot boxplots for highlighted states (top and bottom 5)
+  geom_boxplot(data = filter(health, Highlight == "Highlight"),
+               aes(x = StateDesc, y = DIABETES),
+               width = 0.8, fill = "steelblue", color = "black") +
+
+  scale_x_continuous(
+    breaks = x_mapping$x_pos[x_mapping$StateDesc %in% highlight_states],
+    labels = x_mapping$StateDesc[x_mapping$StateDesc %in% highlight_states]) +
+  
+  labs(title = "Diabetes Rates by City: Highlighting Extremes by State",
+       x = "State (ordered by median diabetes)",
+       y = "Diabetes Rate (%)") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 55, hjust = 1)) +
+  scale_x_discrete(limits = levels(health$StateDesc), labels = function(x) ifelse(x %in% highlight_states, x, ""))
+```
+
+    ## Scale for x is already present.
+    ## Adding another scale for x, which will replace the existing scale.
+
+![](README_files/figure-gfm/unnamed-chunk-22-1.png)<!-- -->
+
+COPD Map
 
 ``` r
 ggplot(map_data_combined, aes(x = long, y = lat, group = group, fill = avgCOPD)) +
@@ -395,33 +895,68 @@ ggplot(map_data_combined, aes(x = long, y = lat, group = group, fill = avgCOPD))
   )
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-7-9.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-23-1.png)<!-- -->
+
+COPD Box Plot Desc
 
 ``` r
-state_means[state_means == 'district of c'] <- 'DC'
+stored_means <- health %>%
+  group_by(StateDesc) %>%
+  summarise(mean_COPD = mean(COPD, na.rm = TRUE)) %>%
+  arrange(mean_COPD)
+
+highlight_states <- c(
+  head(stored_means$StateDesc, 5),
+  tail(stored_means$StateDesc, 5)
+)
+
+
+
+health <- health %>%
+  mutate(Highlight = ifelse(StateDesc %in% highlight_states, "Highlight", "Other"))
+
+health$StateDesc <- reorder(health$StateDesc, health$COPD, FUN = median)
+
+
+health <- health %>%
+  mutate(Highlight = ifelse(StateDesc %in% highlight_states, "Highlight", "Other"),
+         StateDesc = factor(StateDesc, levels = stored_means$StateDesc))  # Ensure the correct order
+
+x_mapping <- health %>%
+  filter(Highlight == "Highlight") %>%
+  arrange(COPD) %>%
+  mutate(x_pos = as.numeric(factor(StateDesc)))
+
+# Plot
+ggplot() +
+  # Plot all "Other" states as points (mean) in the middle
+  stat_summary(data = filter(health, Highlight == "Other"),
+               aes(x = StateDesc, y = COPD),
+               fun = mean, geom = "point", shape = 21, fill = "gray60", size = 2) +
+
+  # Plot boxplots for highlighted states (top and bottom 5)
+  geom_boxplot(data = filter(health, Highlight == "Highlight"),
+               aes(x = StateDesc, y = COPD),
+               width = 0.8, fill = "steelblue", color = "black") +
+
+  scale_x_continuous(
+    breaks = x_mapping$x_pos[x_mapping$StateDesc %in% highlight_states],
+    labels = x_mapping$StateDesc[x_mapping$StateDesc %in% highlight_states]) +
+  
+  labs(title = "COPD Rates by City: Highlighting Extremes by State",
+       x = "State (ordered by median COPD)",
+       y = "COPD Rate (%)") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 55, hjust = 1)) +
+  scale_x_discrete(limits = levels(health$StateDesc), labels = function(x) ifelse(x %in% highlight_states, x, ""))  # Reverses the order on the x-axis
 ```
+
+    ## Scale for x is already present.
+    ## Adding another scale for x, which will replace the existing scale.
+
+![](README_files/figure-gfm/unnamed-chunk-24-1.png)<!-- -->
 
 Find Healthiest States
-
-``` r
-library(data.table)
-```
-
-    ## 
-    ## Attaching package: 'data.table'
-
-    ## The following objects are masked from 'package:lubridate':
-    ## 
-    ##     hour, isoweek, mday, minute, month, quarter, second, wday, week,
-    ##     yday, year
-
-    ## The following object is masked from 'package:purrr':
-    ## 
-    ##     transpose
-
-    ## The following objects are masked from 'package:dplyr':
-    ## 
-    ##     between, first, last
 
 ``` r
 topTen <- state_means %>%
@@ -502,12 +1037,6 @@ healthiest <- healthiest %>%
 Make a table for the healthiest places
 
 ``` r
-library(gt)
-```
-
-    ## Warning: package 'gt' was built under R version 4.4.1
-
-``` r
 value_counts <- healthiest %>%
   pivot_longer(everything()) %>%
   count(value, name = "freq")
@@ -559,20 +1088,20 @@ for (col_name in colnames(healthiest)) {
 gt_table
 ```
 
-<div id="tqxjcfkmab" style="padding-left:0px;padding-right:0px;padding-top:10px;padding-bottom:10px;overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
-<style>#tqxjcfkmab table {
+<div id="ujywndolco" style="padding-left:0px;padding-right:0px;padding-top:10px;padding-bottom:10px;overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
+<style>#ujywndolco table {
   font-family: system-ui, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
-&#10;#tqxjcfkmab thead, #tqxjcfkmab tbody, #tqxjcfkmab tfoot, #tqxjcfkmab tr, #tqxjcfkmab td, #tqxjcfkmab th {
+&#10;#ujywndolco thead, #ujywndolco tbody, #ujywndolco tfoot, #ujywndolco tr, #ujywndolco td, #ujywndolco th {
   border-style: none;
 }
-&#10;#tqxjcfkmab p {
+&#10;#ujywndolco p {
   margin: 0;
   padding: 0;
 }
-&#10;#tqxjcfkmab .gt_table {
+&#10;#ujywndolco .gt_table {
   display: table;
   border-collapse: collapse;
   line-height: normal;
@@ -597,11 +1126,11 @@ gt_table
   border-left-width: 2px;
   border-left-color: #D3D3D3;
 }
-&#10;#tqxjcfkmab .gt_caption {
+&#10;#ujywndolco .gt_caption {
   padding-top: 4px;
   padding-bottom: 4px;
 }
-&#10;#tqxjcfkmab .gt_title {
+&#10;#ujywndolco .gt_title {
   color: #333333;
   font-size: 125%;
   font-weight: initial;
@@ -612,7 +1141,7 @@ gt_table
   border-bottom-color: #FFFFFF;
   border-bottom-width: 0;
 }
-&#10;#tqxjcfkmab .gt_subtitle {
+&#10;#ujywndolco .gt_subtitle {
   color: #333333;
   font-size: 85%;
   font-weight: initial;
@@ -623,7 +1152,7 @@ gt_table
   border-top-color: #FFFFFF;
   border-top-width: 0;
 }
-&#10;#tqxjcfkmab .gt_heading {
+&#10;#ujywndolco .gt_heading {
   background-color: #FFFFFF;
   text-align: center;
   border-bottom-color: #FFFFFF;
@@ -634,12 +1163,12 @@ gt_table
   border-right-width: 1px;
   border-right-color: #D3D3D3;
 }
-&#10;#tqxjcfkmab .gt_bottom_border {
+&#10;#ujywndolco .gt_bottom_border {
   border-bottom-style: solid;
   border-bottom-width: 2px;
   border-bottom-color: #D3D3D3;
 }
-&#10;#tqxjcfkmab .gt_col_headings {
+&#10;#ujywndolco .gt_col_headings {
   border-top-style: solid;
   border-top-width: 2px;
   border-top-color: #D3D3D3;
@@ -653,7 +1182,7 @@ gt_table
   border-right-width: 1px;
   border-right-color: #D3D3D3;
 }
-&#10;#tqxjcfkmab .gt_col_heading {
+&#10;#ujywndolco .gt_col_heading {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -672,7 +1201,7 @@ gt_table
   padding-right: 5px;
   overflow-x: hidden;
 }
-&#10;#tqxjcfkmab .gt_column_spanner_outer {
+&#10;#ujywndolco .gt_column_spanner_outer {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -683,13 +1212,13 @@ gt_table
   padding-left: 4px;
   padding-right: 4px;
 }
-&#10;#tqxjcfkmab .gt_column_spanner_outer:first-child {
+&#10;#ujywndolco .gt_column_spanner_outer:first-child {
   padding-left: 0;
 }
-&#10;#tqxjcfkmab .gt_column_spanner_outer:last-child {
+&#10;#ujywndolco .gt_column_spanner_outer:last-child {
   padding-right: 0;
 }
-&#10;#tqxjcfkmab .gt_column_spanner {
+&#10;#ujywndolco .gt_column_spanner {
   border-bottom-style: solid;
   border-bottom-width: 2px;
   border-bottom-color: #D3D3D3;
@@ -700,10 +1229,10 @@ gt_table
   display: inline-block;
   width: 100%;
 }
-&#10;#tqxjcfkmab .gt_spanner_row {
+&#10;#ujywndolco .gt_spanner_row {
   border-bottom-style: hidden;
 }
-&#10;#tqxjcfkmab .gt_group_heading {
+&#10;#ujywndolco .gt_group_heading {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -728,7 +1257,7 @@ gt_table
   vertical-align: middle;
   text-align: left;
 }
-&#10;#tqxjcfkmab .gt_empty_group_heading {
+&#10;#ujywndolco .gt_empty_group_heading {
   padding: 0.5px;
   color: #333333;
   background-color: #FFFFFF;
@@ -742,13 +1271,13 @@ gt_table
   border-bottom-color: #D3D3D3;
   vertical-align: middle;
 }
-&#10;#tqxjcfkmab .gt_from_md > :first-child {
+&#10;#ujywndolco .gt_from_md > :first-child {
   margin-top: 0;
 }
-&#10;#tqxjcfkmab .gt_from_md > :last-child {
+&#10;#ujywndolco .gt_from_md > :last-child {
   margin-bottom: 0;
 }
-&#10;#tqxjcfkmab .gt_row {
+&#10;#ujywndolco .gt_row {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -766,7 +1295,7 @@ gt_table
   vertical-align: middle;
   overflow-x: hidden;
 }
-&#10;#tqxjcfkmab .gt_stub {
+&#10;#ujywndolco .gt_stub {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -778,7 +1307,7 @@ gt_table
   padding-left: 5px;
   padding-right: 5px;
 }
-&#10;#tqxjcfkmab .gt_stub_row_group {
+&#10;#ujywndolco .gt_stub_row_group {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -791,13 +1320,13 @@ gt_table
   padding-right: 5px;
   vertical-align: top;
 }
-&#10;#tqxjcfkmab .gt_row_group_first td {
+&#10;#ujywndolco .gt_row_group_first td {
   border-top-width: 2px;
 }
-&#10;#tqxjcfkmab .gt_row_group_first th {
+&#10;#ujywndolco .gt_row_group_first th {
   border-top-width: 2px;
 }
-&#10;#tqxjcfkmab .gt_summary_row {
+&#10;#ujywndolco .gt_summary_row {
   color: #333333;
   background-color: #FFFFFF;
   text-transform: inherit;
@@ -806,14 +1335,14 @@ gt_table
   padding-left: 5px;
   padding-right: 5px;
 }
-&#10;#tqxjcfkmab .gt_first_summary_row {
+&#10;#ujywndolco .gt_first_summary_row {
   border-top-style: solid;
   border-top-color: #D3D3D3;
 }
-&#10;#tqxjcfkmab .gt_first_summary_row.thick {
+&#10;#ujywndolco .gt_first_summary_row.thick {
   border-top-width: 2px;
 }
-&#10;#tqxjcfkmab .gt_last_summary_row {
+&#10;#ujywndolco .gt_last_summary_row {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -822,7 +1351,7 @@ gt_table
   border-bottom-width: 2px;
   border-bottom-color: #D3D3D3;
 }
-&#10;#tqxjcfkmab .gt_grand_summary_row {
+&#10;#ujywndolco .gt_grand_summary_row {
   color: #333333;
   background-color: #FFFFFF;
   text-transform: inherit;
@@ -831,7 +1360,7 @@ gt_table
   padding-left: 5px;
   padding-right: 5px;
 }
-&#10;#tqxjcfkmab .gt_first_grand_summary_row {
+&#10;#ujywndolco .gt_first_grand_summary_row {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -840,7 +1369,7 @@ gt_table
   border-top-width: 6px;
   border-top-color: #D3D3D3;
 }
-&#10;#tqxjcfkmab .gt_last_grand_summary_row_top {
+&#10;#ujywndolco .gt_last_grand_summary_row_top {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -849,10 +1378,10 @@ gt_table
   border-bottom-width: 6px;
   border-bottom-color: #D3D3D3;
 }
-&#10;#tqxjcfkmab .gt_striped {
+&#10;#ujywndolco .gt_striped {
   background-color: rgba(128, 128, 128, 0.05);
 }
-&#10;#tqxjcfkmab .gt_table_body {
+&#10;#ujywndolco .gt_table_body {
   border-top-style: solid;
   border-top-width: 2px;
   border-top-color: #D3D3D3;
@@ -860,7 +1389,7 @@ gt_table
   border-bottom-width: 2px;
   border-bottom-color: #D3D3D3;
 }
-&#10;#tqxjcfkmab .gt_footnotes {
+&#10;#ujywndolco .gt_footnotes {
   color: #333333;
   background-color: #FFFFFF;
   border-bottom-style: none;
@@ -873,7 +1402,7 @@ gt_table
   border-right-width: 2px;
   border-right-color: #D3D3D3;
 }
-&#10;#tqxjcfkmab .gt_footnote {
+&#10;#ujywndolco .gt_footnote {
   margin: 0px;
   font-size: 90%;
   padding-top: 4px;
@@ -881,7 +1410,7 @@ gt_table
   padding-left: 5px;
   padding-right: 5px;
 }
-&#10;#tqxjcfkmab .gt_sourcenotes {
+&#10;#ujywndolco .gt_sourcenotes {
   color: #333333;
   background-color: #FFFFFF;
   border-bottom-style: none;
@@ -894,57 +1423,57 @@ gt_table
   border-right-width: 2px;
   border-right-color: #D3D3D3;
 }
-&#10;#tqxjcfkmab .gt_sourcenote {
+&#10;#ujywndolco .gt_sourcenote {
   font-size: 90%;
   padding-top: 4px;
   padding-bottom: 4px;
   padding-left: 5px;
   padding-right: 5px;
 }
-&#10;#tqxjcfkmab .gt_left {
+&#10;#ujywndolco .gt_left {
   text-align: left;
 }
-&#10;#tqxjcfkmab .gt_center {
+&#10;#ujywndolco .gt_center {
   text-align: center;
 }
-&#10;#tqxjcfkmab .gt_right {
+&#10;#ujywndolco .gt_right {
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
-&#10;#tqxjcfkmab .gt_font_normal {
+&#10;#ujywndolco .gt_font_normal {
   font-weight: normal;
 }
-&#10;#tqxjcfkmab .gt_font_bold {
+&#10;#ujywndolco .gt_font_bold {
   font-weight: bold;
 }
-&#10;#tqxjcfkmab .gt_font_italic {
+&#10;#ujywndolco .gt_font_italic {
   font-style: italic;
 }
-&#10;#tqxjcfkmab .gt_super {
+&#10;#ujywndolco .gt_super {
   font-size: 65%;
 }
-&#10;#tqxjcfkmab .gt_footnote_marks {
+&#10;#ujywndolco .gt_footnote_marks {
   font-size: 75%;
   vertical-align: 0.4em;
   position: initial;
 }
-&#10;#tqxjcfkmab .gt_asterisk {
+&#10;#ujywndolco .gt_asterisk {
   font-size: 100%;
   vertical-align: 0;
 }
-&#10;#tqxjcfkmab .gt_indent_1 {
+&#10;#ujywndolco .gt_indent_1 {
   text-indent: 5px;
 }
-&#10;#tqxjcfkmab .gt_indent_2 {
+&#10;#ujywndolco .gt_indent_2 {
   text-indent: 10px;
 }
-&#10;#tqxjcfkmab .gt_indent_3 {
+&#10;#ujywndolco .gt_indent_3 {
   text-indent: 15px;
 }
-&#10;#tqxjcfkmab .gt_indent_4 {
+&#10;#ujywndolco .gt_indent_4 {
   text-indent: 20px;
 }
-&#10;#tqxjcfkmab .gt_indent_5 {
+&#10;#ujywndolco .gt_indent_5 {
   text-indent: 25px;
 }
 </style>
@@ -1054,13 +1583,11 @@ ggplot(smallest_values, aes(x = Rank, y = value, color = Variable)) +
   scale_x_continuous(breaks = 1:5)
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-11-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-27-1.png)<!-- -->
 
 Find Least Healthy States
 
 ``` r
-library(data.table)
-
 bottomTen <- state_means %>%
   arrange(desc(avgMentalIllness)) %>%
   head(5)
@@ -1190,20 +1717,20 @@ for (col_name in colnames(leastHealthy)) {
 gt_table
 ```
 
-<div id="vexohgvfnu" style="padding-left:0px;padding-right:0px;padding-top:10px;padding-bottom:10px;overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
-<style>#vexohgvfnu table {
+<div id="zecrvivnof" style="padding-left:0px;padding-right:0px;padding-top:10px;padding-bottom:10px;overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
+<style>#zecrvivnof table {
   font-family: system-ui, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
-&#10;#vexohgvfnu thead, #vexohgvfnu tbody, #vexohgvfnu tfoot, #vexohgvfnu tr, #vexohgvfnu td, #vexohgvfnu th {
+&#10;#zecrvivnof thead, #zecrvivnof tbody, #zecrvivnof tfoot, #zecrvivnof tr, #zecrvivnof td, #zecrvivnof th {
   border-style: none;
 }
-&#10;#vexohgvfnu p {
+&#10;#zecrvivnof p {
   margin: 0;
   padding: 0;
 }
-&#10;#vexohgvfnu .gt_table {
+&#10;#zecrvivnof .gt_table {
   display: table;
   border-collapse: collapse;
   line-height: normal;
@@ -1228,11 +1755,11 @@ gt_table
   border-left-width: 2px;
   border-left-color: #D3D3D3;
 }
-&#10;#vexohgvfnu .gt_caption {
+&#10;#zecrvivnof .gt_caption {
   padding-top: 4px;
   padding-bottom: 4px;
 }
-&#10;#vexohgvfnu .gt_title {
+&#10;#zecrvivnof .gt_title {
   color: #333333;
   font-size: 125%;
   font-weight: initial;
@@ -1243,7 +1770,7 @@ gt_table
   border-bottom-color: #FFFFFF;
   border-bottom-width: 0;
 }
-&#10;#vexohgvfnu .gt_subtitle {
+&#10;#zecrvivnof .gt_subtitle {
   color: #333333;
   font-size: 85%;
   font-weight: initial;
@@ -1254,7 +1781,7 @@ gt_table
   border-top-color: #FFFFFF;
   border-top-width: 0;
 }
-&#10;#vexohgvfnu .gt_heading {
+&#10;#zecrvivnof .gt_heading {
   background-color: #FFFFFF;
   text-align: center;
   border-bottom-color: #FFFFFF;
@@ -1265,12 +1792,12 @@ gt_table
   border-right-width: 1px;
   border-right-color: #D3D3D3;
 }
-&#10;#vexohgvfnu .gt_bottom_border {
+&#10;#zecrvivnof .gt_bottom_border {
   border-bottom-style: solid;
   border-bottom-width: 2px;
   border-bottom-color: #D3D3D3;
 }
-&#10;#vexohgvfnu .gt_col_headings {
+&#10;#zecrvivnof .gt_col_headings {
   border-top-style: solid;
   border-top-width: 2px;
   border-top-color: #D3D3D3;
@@ -1284,7 +1811,7 @@ gt_table
   border-right-width: 1px;
   border-right-color: #D3D3D3;
 }
-&#10;#vexohgvfnu .gt_col_heading {
+&#10;#zecrvivnof .gt_col_heading {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -1303,7 +1830,7 @@ gt_table
   padding-right: 5px;
   overflow-x: hidden;
 }
-&#10;#vexohgvfnu .gt_column_spanner_outer {
+&#10;#zecrvivnof .gt_column_spanner_outer {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -1314,13 +1841,13 @@ gt_table
   padding-left: 4px;
   padding-right: 4px;
 }
-&#10;#vexohgvfnu .gt_column_spanner_outer:first-child {
+&#10;#zecrvivnof .gt_column_spanner_outer:first-child {
   padding-left: 0;
 }
-&#10;#vexohgvfnu .gt_column_spanner_outer:last-child {
+&#10;#zecrvivnof .gt_column_spanner_outer:last-child {
   padding-right: 0;
 }
-&#10;#vexohgvfnu .gt_column_spanner {
+&#10;#zecrvivnof .gt_column_spanner {
   border-bottom-style: solid;
   border-bottom-width: 2px;
   border-bottom-color: #D3D3D3;
@@ -1331,10 +1858,10 @@ gt_table
   display: inline-block;
   width: 100%;
 }
-&#10;#vexohgvfnu .gt_spanner_row {
+&#10;#zecrvivnof .gt_spanner_row {
   border-bottom-style: hidden;
 }
-&#10;#vexohgvfnu .gt_group_heading {
+&#10;#zecrvivnof .gt_group_heading {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -1359,7 +1886,7 @@ gt_table
   vertical-align: middle;
   text-align: left;
 }
-&#10;#vexohgvfnu .gt_empty_group_heading {
+&#10;#zecrvivnof .gt_empty_group_heading {
   padding: 0.5px;
   color: #333333;
   background-color: #FFFFFF;
@@ -1373,13 +1900,13 @@ gt_table
   border-bottom-color: #D3D3D3;
   vertical-align: middle;
 }
-&#10;#vexohgvfnu .gt_from_md > :first-child {
+&#10;#zecrvivnof .gt_from_md > :first-child {
   margin-top: 0;
 }
-&#10;#vexohgvfnu .gt_from_md > :last-child {
+&#10;#zecrvivnof .gt_from_md > :last-child {
   margin-bottom: 0;
 }
-&#10;#vexohgvfnu .gt_row {
+&#10;#zecrvivnof .gt_row {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -1397,7 +1924,7 @@ gt_table
   vertical-align: middle;
   overflow-x: hidden;
 }
-&#10;#vexohgvfnu .gt_stub {
+&#10;#zecrvivnof .gt_stub {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -1409,7 +1936,7 @@ gt_table
   padding-left: 5px;
   padding-right: 5px;
 }
-&#10;#vexohgvfnu .gt_stub_row_group {
+&#10;#zecrvivnof .gt_stub_row_group {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -1422,13 +1949,13 @@ gt_table
   padding-right: 5px;
   vertical-align: top;
 }
-&#10;#vexohgvfnu .gt_row_group_first td {
+&#10;#zecrvivnof .gt_row_group_first td {
   border-top-width: 2px;
 }
-&#10;#vexohgvfnu .gt_row_group_first th {
+&#10;#zecrvivnof .gt_row_group_first th {
   border-top-width: 2px;
 }
-&#10;#vexohgvfnu .gt_summary_row {
+&#10;#zecrvivnof .gt_summary_row {
   color: #333333;
   background-color: #FFFFFF;
   text-transform: inherit;
@@ -1437,14 +1964,14 @@ gt_table
   padding-left: 5px;
   padding-right: 5px;
 }
-&#10;#vexohgvfnu .gt_first_summary_row {
+&#10;#zecrvivnof .gt_first_summary_row {
   border-top-style: solid;
   border-top-color: #D3D3D3;
 }
-&#10;#vexohgvfnu .gt_first_summary_row.thick {
+&#10;#zecrvivnof .gt_first_summary_row.thick {
   border-top-width: 2px;
 }
-&#10;#vexohgvfnu .gt_last_summary_row {
+&#10;#zecrvivnof .gt_last_summary_row {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -1453,7 +1980,7 @@ gt_table
   border-bottom-width: 2px;
   border-bottom-color: #D3D3D3;
 }
-&#10;#vexohgvfnu .gt_grand_summary_row {
+&#10;#zecrvivnof .gt_grand_summary_row {
   color: #333333;
   background-color: #FFFFFF;
   text-transform: inherit;
@@ -1462,7 +1989,7 @@ gt_table
   padding-left: 5px;
   padding-right: 5px;
 }
-&#10;#vexohgvfnu .gt_first_grand_summary_row {
+&#10;#zecrvivnof .gt_first_grand_summary_row {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -1471,7 +1998,7 @@ gt_table
   border-top-width: 6px;
   border-top-color: #D3D3D3;
 }
-&#10;#vexohgvfnu .gt_last_grand_summary_row_top {
+&#10;#zecrvivnof .gt_last_grand_summary_row_top {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -1480,10 +2007,10 @@ gt_table
   border-bottom-width: 6px;
   border-bottom-color: #D3D3D3;
 }
-&#10;#vexohgvfnu .gt_striped {
+&#10;#zecrvivnof .gt_striped {
   background-color: rgba(128, 128, 128, 0.05);
 }
-&#10;#vexohgvfnu .gt_table_body {
+&#10;#zecrvivnof .gt_table_body {
   border-top-style: solid;
   border-top-width: 2px;
   border-top-color: #D3D3D3;
@@ -1491,7 +2018,7 @@ gt_table
   border-bottom-width: 2px;
   border-bottom-color: #D3D3D3;
 }
-&#10;#vexohgvfnu .gt_footnotes {
+&#10;#zecrvivnof .gt_footnotes {
   color: #333333;
   background-color: #FFFFFF;
   border-bottom-style: none;
@@ -1504,7 +2031,7 @@ gt_table
   border-right-width: 2px;
   border-right-color: #D3D3D3;
 }
-&#10;#vexohgvfnu .gt_footnote {
+&#10;#zecrvivnof .gt_footnote {
   margin: 0px;
   font-size: 90%;
   padding-top: 4px;
@@ -1512,7 +2039,7 @@ gt_table
   padding-left: 5px;
   padding-right: 5px;
 }
-&#10;#vexohgvfnu .gt_sourcenotes {
+&#10;#zecrvivnof .gt_sourcenotes {
   color: #333333;
   background-color: #FFFFFF;
   border-bottom-style: none;
@@ -1525,57 +2052,57 @@ gt_table
   border-right-width: 2px;
   border-right-color: #D3D3D3;
 }
-&#10;#vexohgvfnu .gt_sourcenote {
+&#10;#zecrvivnof .gt_sourcenote {
   font-size: 90%;
   padding-top: 4px;
   padding-bottom: 4px;
   padding-left: 5px;
   padding-right: 5px;
 }
-&#10;#vexohgvfnu .gt_left {
+&#10;#zecrvivnof .gt_left {
   text-align: left;
 }
-&#10;#vexohgvfnu .gt_center {
+&#10;#zecrvivnof .gt_center {
   text-align: center;
 }
-&#10;#vexohgvfnu .gt_right {
+&#10;#zecrvivnof .gt_right {
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
-&#10;#vexohgvfnu .gt_font_normal {
+&#10;#zecrvivnof .gt_font_normal {
   font-weight: normal;
 }
-&#10;#vexohgvfnu .gt_font_bold {
+&#10;#zecrvivnof .gt_font_bold {
   font-weight: bold;
 }
-&#10;#vexohgvfnu .gt_font_italic {
+&#10;#zecrvivnof .gt_font_italic {
   font-style: italic;
 }
-&#10;#vexohgvfnu .gt_super {
+&#10;#zecrvivnof .gt_super {
   font-size: 65%;
 }
-&#10;#vexohgvfnu .gt_footnote_marks {
+&#10;#zecrvivnof .gt_footnote_marks {
   font-size: 75%;
   vertical-align: 0.4em;
   position: initial;
 }
-&#10;#vexohgvfnu .gt_asterisk {
+&#10;#zecrvivnof .gt_asterisk {
   font-size: 100%;
   vertical-align: 0;
 }
-&#10;#vexohgvfnu .gt_indent_1 {
+&#10;#zecrvivnof .gt_indent_1 {
   text-indent: 5px;
 }
-&#10;#vexohgvfnu .gt_indent_2 {
+&#10;#zecrvivnof .gt_indent_2 {
   text-indent: 10px;
 }
-&#10;#vexohgvfnu .gt_indent_3 {
+&#10;#zecrvivnof .gt_indent_3 {
   text-indent: 15px;
 }
-&#10;#vexohgvfnu .gt_indent_4 {
+&#10;#zecrvivnof .gt_indent_4 {
   text-indent: 20px;
 }
-&#10;#vexohgvfnu .gt_indent_5 {
+&#10;#zecrvivnof .gt_indent_5 {
   text-indent: 25px;
 }
 </style>
@@ -1685,7 +2212,7 @@ ggplot(biggest_values, aes(x = Rank, y = value, color = Variable)) +
   scale_x_continuous(breaks = 1:5)
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-14-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-30-1.png)<!-- -->
 
 Create a new grouping and perform Kruskal-Wallis analysis
 
@@ -1755,4 +2282,4 @@ ggplot(results, aes(x = Illness, y = p_value)) +
   scale_y_continuous(expand = expansion(mult = c(0, 0.1)))
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-15-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-31-1.png)<!-- -->
