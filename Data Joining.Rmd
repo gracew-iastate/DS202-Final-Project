@@ -585,7 +585,6 @@ bottomTen <-  state_means %>%
 leastHealthy$COPD <- bottomTen$StateDesc
 
 
-
 leastHealthy$Health <- rep("↓")
 leastHealthy$Health[1] <- "Highest Rate"
 leastHealthy$Health[5] <- "Fifth Highest Rate"

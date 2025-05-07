@@ -1,6 +1,6 @@
 ---
 title: "DS2020 Final Project"
-output: github_document
+output: html_document
 author: "Grace Wu, Naomi Mauss"
 ---
 
