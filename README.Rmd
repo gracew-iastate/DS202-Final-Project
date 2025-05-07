@@ -34,35 +34,15 @@ library(tidyverse)
 ```
 
 
-```{R}
-
-health %>%
-  mutate(StateDesc = reorder(StateDesc, COPD, median)) %>%
-  ggplot(aes(y = COPD, x = StateDesc)) +
-    geom_boxplot(color = "steelblue") +
-    labs(title = "COPD Rates by City Grouped by State",
-         x = "COPD Rate (%)",
-         y = NULL) +
-    theme_minimal() +
-    theme(axis.text.y = element_blank(),
-          axis.ticks.y = element_blank(),
-          axis.text.x = element_text(angle = 45, hjust = 1)) +
-    scale_y_continuous(expand = expansion(mult = c(0, 0.1)))
-
-
-
-```
 
 
 
 
 
-We now want to add the population level to the dataset
+<!-- # DO NOT KEEP RELOADING THIS!!!!! -->
 
-# DO NOT KEEP RELOADING THIS!!!!!
-
-THE DATA CAN BE RETRIEVED FROM THE BOX FOLDER IT TAKES A LOT OF
-COMPUTATIONAL POWER TO RUN THE FOLLOWING CODE CHUNK THANK YOU : )
+<!-- THE DATA CAN BE RETRIEVED FROM THE BOX FOLDER IT TAKES A LOT OF -->
+<!-- COMPUTATIONAL POWER TO RUN THE FOLLOWING CODE CHUNK THANK YOU : ) -->
 
 
 
@@ -167,8 +147,18 @@ map_data_combined <- left_join(states_map, my_data, by = c("region" = "state"))
 # write_xlsx(state_means, 'C:\\Users\\songb\\Desktop\\state_means.xlsx')
 ```
 
+```{R}
+
+state_means[state_means == 'district of c'] <- 'DC'
+
+```
+
+
+
 Now we make the maps
 
+
+Mental Illness Map
 ```{R}
 
 ggplot(map_data_combined, aes(x = long, y = lat, group = group, fill = avgMentalIllness)) +
@@ -193,7 +183,60 @@ ggplot(map_data_combined, aes(x = long, y = lat, group = group, fill = avgMental
     legend.title = element_text(size = 10, face = "bold"),
     legend.text = element_text(size = 8)
   )
+```
 
+Mental Illness Box Plot Desc
+
+```{R}
+state_means <- health %>%
+  group_by(StateDesc) %>%
+  summarise(mean_COPD = mean(MHLTH, na.rm = TRUE)) %>%
+  arrange(mean_COPD)
+
+highlight_states <- c(
+  head(state_means$StateDesc, 5),
+  tail(state_means$StateDesc, 5)
+)
+
+health <- health %>%
+  mutate(Highlight = ifelse(StateDesc %in% highlight_states, "Highlight", "Other"))
+
+health$StateDesc <- reorder(health$StateDesc, health$MHLTH, FUN = median)
+
+
+health <- health %>%
+  mutate(Highlight = ifelse(StateDesc %in% highlight_states, "Highlight", "Other"),
+         StateDesc = factor(StateDesc, levels = state_means$StateDesc))  # Ensure the correct order
+
+# Plot
+ggplot() +
+  # Plot all "Other" states as points (mean) in the middle
+  stat_summary(data = filter(health, Highlight == "Other"),
+               aes(x = StateDesc, y = MHLTH),
+               fun = mean, geom = "point", shape = 21, fill = "gray60", size = 2) +
+
+  # Plot boxplots for highlighted states (top and bottom 5)
+  geom_boxplot(data = filter(health, Highlight == "Highlight"),
+               aes(x = StateDesc, y = MHLTH),
+               width = 0.8, fill = "steelblue", color = "black") +
+
+  scale_x_continuous(
+    breaks = x_mapping$x_pos[x_mapping$StateDesc %in% highlight_states],
+    labels = x_mapping$StateDesc[x_mapping$StateDesc %in% highlight_states]) +
+  
+  labs(title = "Mental Illness Rates by City: Highlighting Extremes by State",
+       x = "State (ordered by median mental illness)",
+       y = "Mental Illness Rate (%)") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 55, hjust = 1)) +
+  scale_x_discrete(limits = levels(health$StateDesc), labels = function(x) ifelse(x %in% highlight_states, x, ""))
+
+```
+
+
+
+Binge Drinking Map
+```{R}
 ggplot(map_data_combined, aes(x = long, y = lat, group = group, fill = avgBingeDrinking)) +
   geom_polygon(color = "white", size = 0.3) +
   coord_fixed(1.3) +
@@ -216,7 +259,63 @@ ggplot(map_data_combined, aes(x = long, y = lat, group = group, fill = avgBingeD
     legend.title = element_text(size = 10, face = "bold"),
     legend.text = element_text(size = 8)
   )
+```
 
+
+Binge Drinking Box Plot Desc
+
+```{R}
+state_means <- health %>%
+  group_by(StateDesc) %>%
+  summarise(mean_COPD = mean(BINGE, na.rm = TRUE)) %>%
+  arrange(mean_COPD)
+
+highlight_states <- c(
+  head(state_means$StateDesc, 5),
+  tail(state_means$StateDesc, 5)
+)
+
+health <- health %>%
+  mutate(Highlight = ifelse(StateDesc %in% highlight_states, "Highlight", "Other"))
+
+health$StateDesc <- reorder(health$StateDesc, health$BINGE, FUN = median)
+
+
+health <- health %>%
+  mutate(Highlight = ifelse(StateDesc %in% highlight_states, "Highlight", "Other"),
+         StateDesc = factor(StateDesc, levels = state_means$StateDesc))  # Ensure the correct order
+
+# Plot
+ggplot() +
+  # Plot all "Other" states as points (mean) in the middle
+  stat_summary(data = filter(health, Highlight == "Other"),
+               aes(x = StateDesc, y = BINGE),
+               fun = mean, geom = "point", shape = 21, fill = "gray60", size = 2) +
+
+  # Plot boxplots for highlighted states (top and bottom 5)
+  geom_boxplot(data = filter(health, Highlight == "Highlight"),
+               aes(x = StateDesc, y = BINGE),
+               width = 0.8, fill = "steelblue", color = "black") +
+
+  scale_x_continuous(
+    breaks = x_mapping$x_pos[x_mapping$StateDesc %in% highlight_states],
+    labels = x_mapping$StateDesc[x_mapping$StateDesc %in% highlight_states]) +
+  
+  labs(title = "Binge Drinking Rates by City: Highlighting Extremes by State",
+       x = "State (ordered by median binge drinking)",
+       y = "Binge Drinking Rate (%)") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 55, hjust = 1)) +
+  scale_x_discrete(limits = levels(health$StateDesc), labels = function(x) ifelse(x %in% highlight_states, x, ""))
+
+```
+
+
+
+
+Asthma Map
+
+```{R}
 ggplot(map_data_combined, aes(x = long, y = lat, group = group, fill = avgChildhoodAsthma)) +
   geom_polygon(color = "white", size = 0.3) +
   coord_fixed(1.3) +
@@ -239,7 +338,61 @@ ggplot(map_data_combined, aes(x = long, y = lat, group = group, fill = avgChildh
     legend.title = element_text(size = 10, face = "bold"),
     legend.text = element_text(size = 8)
   )
+```
 
+
+Childhood Asthma Box Plot Desc
+
+```{R}
+state_means <- health %>%
+  group_by(StateDesc) %>%
+  summarise(mean_COPD = mean(CASTHMA, na.rm = TRUE)) %>%
+  arrange(mean_COPD)
+
+highlight_states <- c(
+  head(state_means$StateDesc, 5),
+  tail(state_means$StateDesc, 5)
+)
+
+health <- health %>%
+  mutate(Highlight = ifelse(StateDesc %in% highlight_states, "Highlight", "Other"))
+
+health$StateDesc <- reorder(health$StateDesc, health$CASTHMA, FUN = median)
+
+
+health <- health %>%
+  mutate(Highlight = ifelse(StateDesc %in% highlight_states, "Highlight", "Other"),
+         StateDesc = factor(StateDesc, levels = state_means$StateDesc))  # Ensure the correct order
+
+# Plot
+ggplot() +
+  # Plot all "Other" states as points (mean) in the middle
+  stat_summary(data = filter(health, Highlight == "Other"),
+               aes(x = StateDesc, y = CASTHMA),
+               fun = mean, geom = "point", shape = 21, fill = "gray60", size = 2) +
+
+  # Plot boxplots for highlighted states (top and bottom 5)
+  geom_boxplot(data = filter(health, Highlight == "Highlight"),
+               aes(x = StateDesc, y = CASTHMA),
+               width = 0.8, fill = "steelblue", color = "black") +
+
+  scale_x_continuous(
+    breaks = x_mapping$x_pos[x_mapping$StateDesc %in% highlight_states],
+    labels = x_mapping$StateDesc[x_mapping$StateDesc %in% highlight_states]) +
+  
+  labs(title = "Childhood Asthma Rates by City: Highlighting Extremes by State",
+       x = "State (ordered by median childhood asthma)",
+       y = "Childhood Asthma Rate (%)") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 55, hjust = 1)) +
+  scale_x_discrete(limits = levels(health$StateDesc), labels = function(x) ifelse(x %in% highlight_states, x, ""))
+
+```
+
+
+
+Arthritis Map
+```{R}
 ggplot(map_data_combined, aes(x = long, y = lat, group = group, fill = avgArthritis)) +
   geom_polygon(color = "white", size = 0.3) +
   coord_fixed(1.3) +
@@ -262,7 +415,61 @@ ggplot(map_data_combined, aes(x = long, y = lat, group = group, fill = avgArthri
     legend.title = element_text(size = 10, face = "bold"),
     legend.text = element_text(size = 8)
   )
+```
 
+
+Arthritis Box Plot Desc
+
+```{R}
+state_means <- health %>%
+  group_by(StateDesc) %>%
+  summarise(mean_COPD = mean(ARTHRITIS, na.rm = TRUE)) %>%
+  arrange(mean_COPD)
+
+highlight_states <- c(
+  head(state_means$StateDesc, 5),
+  tail(state_means$StateDesc, 5)
+)
+
+health <- health %>%
+  mutate(Highlight = ifelse(StateDesc %in% highlight_states, "Highlight", "Other"))
+
+health$StateDesc <- reorder(health$StateDesc, health$ARTHRITIS, FUN = median)
+
+
+health <- health %>%
+  mutate(Highlight = ifelse(StateDesc %in% highlight_states, "Highlight", "Other"),
+         StateDesc = factor(StateDesc, levels = state_means$StateDesc))  # Ensure the correct order
+
+# Plot
+ggplot() +
+  # Plot all "Other" states as points (mean) in the middle
+  stat_summary(data = filter(health, Highlight == "Other"),
+               aes(x = StateDesc, y = ARTHRITIS),
+               fun = mean, geom = "point", shape = 21, fill = "gray60", size = 2) +
+
+  # Plot boxplots for highlighted states (top and bottom 5)
+  geom_boxplot(data = filter(health, Highlight == "Highlight"),
+               aes(x = StateDesc, y = ARTHRITIS),
+               width = 0.8, fill = "steelblue", color = "black") +
+
+  scale_x_continuous(
+    breaks = x_mapping$x_pos[x_mapping$StateDesc %in% highlight_states],
+    labels = x_mapping$StateDesc[x_mapping$StateDesc %in% highlight_states]) +
+  
+  labs(title = "Arthritis Rates by City: Highlighting Extremes by State",
+       x = "State (ordered by median arthritis)",
+       y = "Childhood Arthritis Rate (%)") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 55, hjust = 1)) +
+  scale_x_discrete(limits = levels(health$StateDesc), labels = function(x) ifelse(x %in% highlight_states, x, ""))
+
+```
+
+
+
+Kidney Disease Map
+```{R}
 ggplot(map_data_combined, aes(x = long, y = lat, group = group, fill = avgKidneyDisease)) +
   geom_polygon(color = "white", size = 0.3) +
   coord_fixed(1.3) +
@@ -285,8 +492,60 @@ ggplot(map_data_combined, aes(x = long, y = lat, group = group, fill = avgKidney
     legend.title = element_text(size = 10, face = "bold"),
     legend.text = element_text(size = 8)
   )
+```
 
 
+Kidney Disease Box Plot Desc
+
+```{R}
+state_means <- health %>%
+  group_by(StateDesc) %>%
+  summarise(mean_COPD = mean(KIDNEY, na.rm = TRUE)) %>%
+  arrange(mean_COPD)
+
+highlight_states <- c(
+  head(state_means$StateDesc, 5),
+  tail(state_means$StateDesc, 5)
+)
+
+health <- health %>%
+  mutate(Highlight = ifelse(StateDesc %in% highlight_states, "Highlight", "Other"))
+
+health$StateDesc <- reorder(health$StateDesc, health$KIDNEY, FUN = median)
+
+
+health <- health %>%
+  mutate(Highlight = ifelse(StateDesc %in% highlight_states, "Highlight", "Other"),
+         StateDesc = factor(StateDesc, levels = state_means$StateDesc))  # Ensure the correct order
+
+# Plot
+ggplot() +
+  # Plot all "Other" states as points (mean) in the middle
+  stat_summary(data = filter(health, Highlight == "Other"),
+               aes(x = StateDesc, y = KIDNEY),
+               fun = mean, geom = "point", shape = 21, fill = "gray60", size = 2) +
+
+  # Plot boxplots for highlighted states (top and bottom 5)
+  geom_boxplot(data = filter(health, Highlight == "Highlight"),
+               aes(x = StateDesc, y = KIDNEY),
+               width = 0.8, fill = "steelblue", color = "black") +
+
+  scale_x_continuous(
+    breaks = x_mapping$x_pos[x_mapping$StateDesc %in% highlight_states],
+    labels = x_mapping$StateDesc[x_mapping$StateDesc %in% highlight_states]) +
+  
+  labs(title = "Kidney Disease Rates by City: Highlighting Extremes by State",
+       x = "State (ordered by median kidney disease)",
+       y = "Kidney Disease Rate (%)") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 55, hjust = 1)) +
+  scale_x_discrete(limits = levels(health$StateDesc), labels = function(x) ifelse(x %in% highlight_states, x, ""))
+
+```
+
+
+High Blood Pressure Map
+```{R}
 ggplot(map_data_combined, aes(x = long, y = lat, group = group, fill = avgHighBP)) +
   geom_polygon(color = "white", size = 0.3) +
   coord_fixed(1.3) +
@@ -309,8 +568,60 @@ ggplot(map_data_combined, aes(x = long, y = lat, group = group, fill = avgHighBP
     legend.title = element_text(size = 10, face = "bold"),
     legend.text = element_text(size = 8)
   )
+```
 
 
+High Blood Pressure Box Plot Desc
+
+```{R}
+state_means <- health %>%
+  group_by(StateDesc) %>%
+  summarise(mean_COPD = mean(BPHIGH, na.rm = TRUE)) %>%
+  arrange(mean_COPD)
+
+highlight_states <- c(
+  head(state_means$StateDesc, 5),
+  tail(state_means$StateDesc, 5)
+)
+
+health <- health %>%
+  mutate(Highlight = ifelse(StateDesc %in% highlight_states, "Highlight", "Other"))
+
+health$StateDesc <- reorder(health$StateDesc, health$BPHIGH, FUN = median)
+
+
+health <- health %>%
+  mutate(Highlight = ifelse(StateDesc %in% highlight_states, "Highlight", "Other"),
+         StateDesc = factor(StateDesc, levels = state_means$StateDesc))  # Ensure the correct order
+
+# Plot
+ggplot() +
+  # Plot all "Other" states as points (mean) in the middle
+  stat_summary(data = filter(health, Highlight == "Other"),
+               aes(x = StateDesc, y = BPHIGH),
+               fun = mean, geom = "point", shape = 21, fill = "gray60", size = 2) +
+
+  # Plot boxplots for highlighted states (top and bottom 5)
+  geom_boxplot(data = filter(health, Highlight == "Highlight"),
+               aes(x = StateDesc, y = BPHIGH),
+               width = 0.8, fill = "steelblue", color = "black") +
+
+  scale_x_continuous(
+    breaks = x_mapping$x_pos[x_mapping$StateDesc %in% highlight_states],
+    labels = x_mapping$StateDesc[x_mapping$StateDesc %in% highlight_states]) +
+  
+  labs(title = "High Blood Pressure Rates by City: Highlighting Extremes by State",
+       x = "State (ordered by median high blood pressure)",
+       y = "High Blood Pressure Rate (%)") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 55, hjust = 1)) +
+  scale_x_discrete(limits = levels(health$StateDesc), labels = function(x) ifelse(x %in% highlight_states, x, ""))
+
+```
+
+
+Cancer Map
+```{R}
 ggplot(map_data_combined, aes(x = long, y = lat, group = group, fill = avgCancer)) +
   geom_polygon(color = "white", size = 0.3) +
   coord_fixed(1.3) +
@@ -332,6 +643,61 @@ ggplot(map_data_combined, aes(x = long, y = lat, group = group, fill = avgCancer
     legend.position = "right",
     legend.title = element_text(size = 10, face = "bold"),
     legend.text = element_text(size = 8))
+
+```
+
+
+Childhood Box Plot Desc
+
+```{R}
+state_means <- health %>%
+  group_by(StateDesc) %>%
+  summarise(mean_COPD = mean(CANCER, na.rm = TRUE)) %>%
+  arrange(mean_COPD)
+
+highlight_states <- c(
+  head(state_means$StateDesc, 5),
+  tail(state_means$StateDesc, 5)
+)
+
+health <- health %>%
+  mutate(Highlight = ifelse(StateDesc %in% highlight_states, "Highlight", "Other"))
+
+health$StateDesc <- reorder(health$StateDesc, health$CANCER, FUN = median)
+
+
+health <- health %>%
+  mutate(Highlight = ifelse(StateDesc %in% highlight_states, "Highlight", "Other"),
+         StateDesc = factor(StateDesc, levels = state_means$StateDesc))  # Ensure the correct order
+
+# Plot
+ggplot() +
+  # Plot all "Other" states as points (mean) in the middle
+  stat_summary(data = filter(health, Highlight == "Other"),
+               aes(x = StateDesc, y = CANCER),
+               fun = mean, geom = "point", shape = 21, fill = "gray60", size = 2) +
+
+  # Plot boxplots for highlighted states (top and bottom 5)
+  geom_boxplot(data = filter(health, Highlight == "Highlight"),
+               aes(x = StateDesc, y = CANCER),
+               width = 0.8, fill = "steelblue", color = "black") +
+
+  scale_x_continuous(
+    breaks = x_mapping$x_pos[x_mapping$StateDesc %in% highlight_states],
+    labels = x_mapping$StateDesc[x_mapping$StateDesc %in% highlight_states]) +
+  
+  labs(title = "Cancer Rates by City: Highlighting Extremes by State",
+       x = "State (ordered by median cancer)",
+       y = "Cancer Rate (%)") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 55, hjust = 1)) +
+  scale_x_discrete(limits = levels(health$StateDesc), labels = function(x) ifelse(x %in% highlight_states, x, ""))
+
+```
+
+
+Diabetes Map
+```{R}
 
 ggplot(map_data_combined, aes(x = long, y = lat, group = group, fill = avgDiabetes)) +
   geom_polygon(color = "white", size = 0.3) +
@@ -355,7 +721,60 @@ ggplot(map_data_combined, aes(x = long, y = lat, group = group, fill = avgDiabet
     legend.title = element_text(size = 10, face = "bold"),
     legend.text = element_text(size = 8))
 
+```
 
+
+Childhood Box Plot Desc
+
+```{R}
+state_means <- health %>%
+  group_by(StateDesc) %>%
+  summarise(mean_COPD = mean(DIABETES, na.rm = TRUE)) %>%
+  arrange(mean_COPD)
+
+highlight_states <- c(
+  head(state_means$StateDesc, 5),
+  tail(state_means$StateDesc, 5)
+)
+
+health <- health %>%
+  mutate(Highlight = ifelse(StateDesc %in% highlight_states, "Highlight", "Other"))
+
+health$StateDesc <- reorder(health$StateDesc, health$DIABETES, FUN = median)
+
+
+health <- health %>%
+  mutate(Highlight = ifelse(StateDesc %in% highlight_states, "Highlight", "Other"),
+         StateDesc = factor(StateDesc, levels = state_means$StateDesc))  # Ensure the correct order
+
+# Plot
+ggplot() +
+  # Plot all "Other" states as points (mean) in the middle
+  stat_summary(data = filter(health, Highlight == "Other"),
+               aes(x = StateDesc, y = DIABETES),
+               fun = mean, geom = "point", shape = 21, fill = "gray60", size = 2) +
+
+  # Plot boxplots for highlighted states (top and bottom 5)
+  geom_boxplot(data = filter(health, Highlight == "Highlight"),
+               aes(x = StateDesc, y = DIABETES),
+               width = 0.8, fill = "steelblue", color = "black") +
+
+  scale_x_continuous(
+    breaks = x_mapping$x_pos[x_mapping$StateDesc %in% highlight_states],
+    labels = x_mapping$StateDesc[x_mapping$StateDesc %in% highlight_states]) +
+  
+  labs(title = "Diabetes Rates by City: Highlighting Extremes by State",
+       x = "State (ordered by median diabetes)",
+       y = "Diabetes Rate (%)") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 55, hjust = 1)) +
+  scale_x_discrete(limits = levels(health$StateDesc), labels = function(x) ifelse(x %in% highlight_states, x, ""))
+
+```
+
+
+COPD Map
+```{R}
 ggplot(map_data_combined, aes(x = long, y = lat, group = group, fill = avgCOPD)) +
   geom_polygon(color = "white", size = 0.3) +
   coord_fixed(1.3) +
@@ -379,13 +798,53 @@ ggplot(map_data_combined, aes(x = long, y = lat, group = group, fill = avgCOPD))
     legend.text = element_text(size = 8)
   )
 
-
-
 ```
 
-```{R}
+COPD Box Plot Desc
 
-state_means[state_means == 'district of c'] <- 'DC'
+```{R}
+state_means <- health %>%
+  group_by(StateDesc) %>%
+  summarise(mean_COPD = mean(COPD, na.rm = TRUE)) %>%
+  arrange(mean_COPD)
+
+highlight_states <- c(
+  head(state_means$StateDesc, 5),
+  tail(state_means$StateDesc, 5)
+)
+
+health <- health %>%
+  mutate(Highlight = ifelse(StateDesc %in% highlight_states, "Highlight", "Other"))
+
+health$StateDesc <- reorder(health$StateDesc, health$COPD, FUN = median)
+
+
+health <- health %>%
+  mutate(Highlight = ifelse(StateDesc %in% highlight_states, "Highlight", "Other"),
+         StateDesc = factor(StateDesc, levels = state_means$StateDesc))  # Ensure the correct order
+
+# Plot
+ggplot() +
+  # Plot all "Other" states as points (mean) in the middle
+  stat_summary(data = filter(health, Highlight == "Other"),
+               aes(x = StateDesc, y = COPD),
+               fun = mean, geom = "point", shape = 21, fill = "gray60", size = 2) +
+
+  # Plot boxplots for highlighted states (top and bottom 5)
+  geom_boxplot(data = filter(health, Highlight == "Highlight"),
+               aes(x = StateDesc, y = COPD),
+               width = 0.8, fill = "steelblue", color = "black") +
+
+  scale_x_continuous(
+    breaks = x_mapping$x_pos[x_mapping$StateDesc %in% highlight_states],
+    labels = x_mapping$StateDesc[x_mapping$StateDesc %in% highlight_states]) +
+  
+  labs(title = "COPD Rates by City: Highlighting Extremes by State",
+       x = "State (ordered by median COPD)",
+       y = "COPD Rate (%)") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 55, hjust = 1)) +
+  scale_x_discrete(limits = levels(health$StateDesc), labels = function(x) ifelse(x %in% highlight_states, x, ""))  # Reverses the order on the x-axis
 
 ```
 
