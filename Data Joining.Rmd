@@ -710,3 +710,51 @@ ggplot(biggest_values, aes(x = Rank, y = value, color = Variable)) +
 
 
 ```
+
+
+
+
+
+
+Create a new grouping and perform Kruskal-Wallis analysis
+```{R}
+
+
+group1_states <- c("alabama", "georgia", "louisiana")
+group2_states <- c("ohio", "west virginia", "pennsylvania")
+
+
+state_means$Group <- ifelse(state_means$StateDesc %in% group1_states, "Group1",
+                      ifelse(state_means$StateDesc %in% group2_states, "Group2", "Group3"))
+
+group_averages <- state_means %>%
+  group_by(Group) %>%
+  summarise(across(-StateDesc, mean, na.rm = TRUE))
+
+long_data <- state_means %>%
+  pivot_longer(cols = -c(StateDesc, Group), names_to = "Illness", values_to = "Rate")
+
+
+results <- long_data %>%
+  group_by(Illness) %>%
+  summarise(p_value = kruskal.test(Rate ~ Group)$p.value)
+
+results <- results[-10, ]
+
+print(results)
+
+
+
+ggplot(results, aes(x = Illness, y = p_value)) +
+  geom_bar(stat = "identity", fill = "steelblue") +
+  geom_hline(yintercept = 0.05, linetype = "dashed", color = "red") +
+  labs(title = "Kruskal-Wallis p-values by Illness",
+       x = "Illness",
+       y = "p-value") +
+  geom_text(aes(label = sprintf("%.4f", p_value)), vjust = -0.5) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  scale_y_continuous(expand = expansion(mult = c(0, 0.1)))
+
+```
+
