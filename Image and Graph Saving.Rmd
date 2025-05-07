@@ -12,6 +12,21 @@ editor_options:
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+
+# Lowest Rates of Illness
+
+![Table of Healthiest States by Illness](images//HealthiestStates.png)
+
+![Chart of Healthiest States by Illness](images//ChartHealthiestVals.png)
+
+
+# Highest Rates of Illness
+
+![Table of Least Healthy States by Illness](images//LeastHealthyStates.png)
+
+![Chart of Least Healthy States by Illness](images//ChartLeastHealthyVals.png)
+
+
 # Illnesses by State
 
 This is the mental illness rate mapped by US state.

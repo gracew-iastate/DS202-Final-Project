@@ -505,33 +505,6 @@ gt_table
 
 ```
 
-Make a chart
-```{R}
-
-smallest_values <- state_means %>%
-  reframe(across(everything(), ~ sort(.x)[1:5])) %>%
-  pivot_longer(cols = where(is_double), 
-             names_to = "Variable", 
-             values_to = "value") %>%
-  group_by(Variable) %>%
-  mutate(Rank = row_number()) %>%
-  ungroup()
-
-ggplot(smallest_values, aes(x = Rank, y = value, color = Variable)) +
-  geom_line() +
-  geom_point() +
-  labs(
-    title = "Five Smallest Values per Illness",
-    x = "Rank (1 = smallest, 5 = 5th smallest)",
-    y = "Value"
-  ) +
-  theme_minimal() +
-  scale_y_continuous(trans='log10') +
-  scale_x_continuous(breaks = 1:5)
-
-
-```
-
 
 
 
@@ -624,7 +597,6 @@ leastHealthy <- leastHealthy %>%
 
 ```
 
-
 ```{R}
 library(gt)
 
@@ -682,31 +654,3 @@ gt_table
 ```
 
 
-
-
-Make a chart
-```{R}
-
-biggest_values <- state_means %>%
-  reframe(across(everything(), ~ sort(.x, decreasing = TRUE)[1:5])) %>%
-  pivot_longer(cols = where(is_double), 
-             names_to = "Variable", 
-             values_to = "value") %>%
-  group_by(Variable) %>%
-  mutate(Rank = row_number()) %>%
-  ungroup()
-
-ggplot(biggest_values, aes(x = Rank, y = value, color = Variable)) +
-  geom_line() +
-  geom_point() +
-  labs(
-    title = "Five Biggest Values per Illness",
-    x = "Rank (1 = smallest, 5 = 5th smallest)",
-    y = "Value"
-  ) +
-  theme_minimal() +
-  scale_y_continuous(trans='log10') +
-  scale_x_continuous(breaks = 1:5)
-
-
-```
