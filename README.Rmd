@@ -1358,12 +1358,19 @@ ggplot(results, aes(x = Illness, y = p_value)) +
   scale_y_continuous(expand = expansion(mult = c(0, 0.1)))
 
 ```
+
+
+
 ```{r}
 highest_illness_table <- state_means %>% 
   select(-Group) %>% 
   pivot_longer(cols = -StateDesc, names_to = "Illness", values_to = "Rate") %>% 
   group_by(StateDesc) %>% 
   slice_max(order_by = Rate, n = 1, with_ties = FALSE)
+
+highest_illness_table <- highest_illness_table %>%
+  mutate(Illness = recode(Illness,
+                             "avgHighBP" = "High BP"))
   
 kable(highest_illness_table, caption = "Most Common Illness By State")
 ```
