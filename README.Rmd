@@ -1106,60 +1106,60 @@ healthiest <- healthiest %>%
 
 
 Make a table for the healthiest places
-```{R}
-
-
-value_counts <- healthiest %>%
-  pivot_longer(everything()) %>%
-  count(value, name = "freq")
-
-# Step 2: Create a lookup table for frequency
-freq_lookup <- setNames(value_counts$freq, value_counts$value)
-
-gt_table <- healthiest %>%
-  gt() %>%
-  tab_header(
-    title = "Healthiest States",
-    subtitle = "States with lowest health ascending by Category"
-  ) %>%
-  tab_style(
-    style = cell_text(weight = "bold"),
-    locations = cells_column_labels(columns = everything())
-  ) %>%
-  tab_options(table.width = pct(100),
-  table.font.size = 11,) %>%
-  opt_align_table_header(align = "center") %>%
-  tab_source_note(
-    source_note = md(
-      "**Legend:** Green = appears 5 times &nbsp;&nbsp;&nbsp; Blue = appears 6 times &nbsp;&nbsp;"
-    )
-  )
-
-for (col_name in colnames(healthiest)) {
-  for (row_index in seq_len(nrow(healthiest))) {
-    cell_value <- healthiest[[col_name]][row_index]
-    freq <- freq_lookup[[cell_value]]
-
-    if (freq == 5) {
-      gt_table <- gt_table %>%
-        tab_style(
-          style = cell_fill(color = "lightgreen"),
-          locations = cells_body(columns = all_of(col_name), rows = row_index)
-        )
-    }
-    else if (freq == 6) {
-      gt_table <- gt_table %>%
-        tab_style(
-          style = cell_fill(color = "lightblue"),
-          locations = cells_body(columns = all_of(col_name), rows = row_index)
-        )
-    }
-  }
-}
-
-gt_table
-
-```
+# ```{R}
+# 
+# 
+# value_counts <- healthiest %>%
+#   pivot_longer(everything()) %>%
+#   count(value, name = "freq")
+# 
+# # Step 2: Create a lookup table for frequency
+# freq_lookup <- setNames(value_counts$freq, value_counts$value)
+# 
+# gt_table <- healthiest %>%
+#   gt() %>%
+#   tab_header(
+#     title = "Healthiest States",
+#     subtitle = "States with lowest health ascending by Category"
+#   ) %>%
+#   tab_style(
+#     style = cell_text(weight = "bold"),
+#     locations = cells_column_labels(columns = everything())
+#   ) %>%
+#   tab_options(table.width = pct(100),
+#   table.font.size = 11,) %>%
+#   opt_align_table_header(align = "center") %>%
+#   tab_source_note(
+#     source_note = md(
+#       "**Legend:** Green = appears 5 times &nbsp;&nbsp;&nbsp; Blue = appears 6 times &nbsp;&nbsp;"
+#     )
+#   )
+# 
+# for (col_name in colnames(healthiest)) {
+#   for (row_index in seq_len(nrow(healthiest))) {
+#     cell_value <- healthiest[[col_name]][row_index]
+#     freq <- freq_lookup[[cell_value]]
+# 
+#     if (freq == 5) {
+#       gt_table <- gt_table %>%
+#         tab_style(
+#           style = cell_fill(color = "lightgreen"),
+#           locations = cells_body(columns = all_of(col_name), rows = row_index)
+#         )
+#     }
+#     else if (freq == 6) {
+#       gt_table <- gt_table %>%
+#         tab_style(
+#           style = cell_fill(color = "lightblue"),
+#           locations = cells_body(columns = all_of(col_name), rows = row_index)
+#         )
+#     }
+#   }
+# }
+# 
+# gt_table
+# 
+# ```
 
 Make a chart
 ```{R}
@@ -1280,61 +1280,61 @@ leastHealthy <- leastHealthy %>%
 ```
 
 
-```{R}
-library(gt)
-
-value_counts <- leastHealthy %>%
-  pivot_longer(everything()) %>%
-  count(value, name = "freq")
-
-# Step 2: Create a lookup table for frequency
-freq_lookup <- setNames(value_counts$freq, value_counts$value)
-
-gt_table <- leastHealthy %>%
-  gt() %>%
-  tab_header(
-    title = "Least Healthy States",
-    subtitle = "States with lowest health ascending by Category"
-  ) %>%
-  tab_options(table.width = pct(100),
-  table.font.size = 11,) %>%
-  opt_align_table_header(align = "center") %>%
-  tab_source_note(
-    source_note = md(
-      "**Legend:** Orange = appears 5 times &nbsp;&nbsp;&nbsp; Yellow = appears 6 times &nbsp;&nbsp;"
-    )
-  )%>%
-  tab_style(
-    style = cell_text(weight = "bold"),
-    locations = cells_column_labels(columns = everything())
-  )
-
-for (col_name in colnames(leastHealthy)) {
-  for (row_index in seq_len(nrow(leastHealthy))) {
-    cell_value <- leastHealthy[[col_name]][row_index]
-    freq <- freq_lookup[[cell_value]]
-
-    if (freq == 5) {
-      gt_table <- gt_table %>%
-        tab_style(
-          style = cell_fill(color = "orange"),
-          locations = cells_body(columns = all_of(col_name), rows = row_index)
-        )
-    }
-    else if (freq == 6) {
-      gt_table <- gt_table %>%
-        tab_style(
-          style = list(cell_fill(color = "yellow"),
-                       cell_text(weight = "bold")),
-          locations = cells_body(columns = all_of(col_name), rows = row_index)
-        )
-    }
-  }
-}
-
-gt_table
-
-```
+# ```{R}
+# library(gt)
+# 
+# value_counts <- leastHealthy %>%
+#   pivot_longer(everything()) %>%
+#   count(value, name = "freq")
+# 
+# # Step 2: Create a lookup table for frequency
+# freq_lookup <- setNames(value_counts$freq, value_counts$value)
+# 
+# gt_table <- leastHealthy %>%
+#   gt() %>%
+#   tab_header(
+#     title = "Least Healthy States",
+#     subtitle = "States with lowest health ascending by Category"
+#   ) %>%
+#   tab_options(table.width = pct(100),
+#   table.font.size = 11,) %>%
+#   opt_align_table_header(align = "center") %>%
+#   tab_source_note(
+#     source_note = md(
+#       "**Legend:** Orange = appears 5 times &nbsp;&nbsp;&nbsp; Yellow = appears 6 times &nbsp;&nbsp;"
+#     )
+#   )%>%
+#   tab_style(
+#     style = cell_text(weight = "bold"),
+#     locations = cells_column_labels(columns = everything())
+#   )
+# 
+# for (col_name in colnames(leastHealthy)) {
+#   for (row_index in seq_len(nrow(leastHealthy))) {
+#     cell_value <- leastHealthy[[col_name]][row_index]
+#     freq <- freq_lookup[[cell_value]]
+# 
+#     if (freq == 5) {
+#       gt_table <- gt_table %>%
+#         tab_style(
+#           style = cell_fill(color = "orange"),
+#           locations = cells_body(columns = all_of(col_name), rows = row_index)
+#         )
+#     }
+#     else if (freq == 6) {
+#       gt_table <- gt_table %>%
+#         tab_style(
+#           style = list(cell_fill(color = "yellow"),
+#                        cell_text(weight = "bold")),
+#           locations = cells_body(columns = all_of(col_name), rows = row_index)
+#         )
+#     }
+#   }
+# }
+# 
+# gt_table
+# 
+# ```
 
 
 
