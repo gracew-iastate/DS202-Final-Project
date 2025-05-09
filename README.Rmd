@@ -33,6 +33,11 @@ library(tidyverse)
 library(data.table)
 library(gt)
 library(xgboost)
+library(tigris)
+library(ggplot2)
+library(sf)
+library(stringr)
+library(rmapshaper)
 
 ```
 
@@ -40,7 +45,7 @@ library(xgboost)
 
 
 
-
+``` {html}
 
 <!-- # DO NOT KEEP RELOADING THIS!!!!! -->
 
@@ -117,6 +122,18 @@ library(xgboost)
 
 
 
+# ```{R}
+# 
+# install.packages("tigris")
+# install.packages("sf")
+# install.packages("ggplot2")
+# install.packages("dplyr")
+# 
+# ```
+
+```
+
+
 Prepare the data to map by state
 
 ```{r}
@@ -127,15 +144,41 @@ Prepare the data to map by state
 #library(viridis)   # optional: better color scale
 
 state_means <- read.csv("https://docs.google.com/spreadsheets/d/e/2PACX-1vRPtd9hIIamvljlqlmKcpm8xzcoSxkiNT4bLA78cgczFQqrSjI1DRrKnNiKR5Ger9CZHL8AEd0bx7OW/pub?output=csv")
+
+state_means$StateDesc <- str_to_title(state_means$StateDesc)
+
 ```
 
 ```{R}
+# Download the shapefile for all states, including Alaska and Hawaii
+us_states_sf <- states(cb = TRUE)
 
-states_map <- map_data("state")
+# View the structure of the data (optional)
+head(us_states_sf)
 
-my_data <- state_means %>% mutate(state = tolower(StateDesc))
+# Map state names in your data to their respective state abbreviations
+state_abbreviations <- c(
+  "Alaska" = "AK", "Hawaii" = "HI", "Alabama" = "AL", "Arizona" = "AZ", 
+  "Arkansas" = "AR", "California" = "CA", "Colorado" = "CO", "Connecticut" = "CT",
+  "Delaware" = "DE", "Florida" = "FL", "Georgia" = "GA", "Hawaii" = "HI", 
+  "Idaho" = "ID", "Illinois" = "IL", "Indiana" = "IN", "Iowa" = "IA", 
+  "Kansas" = "KS", "Kentucky" = "KY", "Louisiana" = "LA", "Maine" = "ME", 
+  "Maryland" = "MD", "Massachusetts" = "MA", "Michigan" = "MI", "Minnesota" = "MN", 
+  "Mississippi" = "MS", "Missouri" = "MO", "Montana" = "MT", "Nebraska" = "NE", 
+  "Nevada" = "NV", "New Hampshire" = "NH", "New Jersey" = "NJ", "New Mexico" = "NM", 
+  "New York" = "NY", "North Carolina" = "NC", "North Dakota" = "ND", "Ohio" = "OH", 
+  "Oklahoma" = "OK", "Oregon" = "OR", "Pennsylvania" = "PA", "Rhode Island" = "RI", 
+  "South Carolina" = "SC", "South Dakota" = "SD", "Tennessee" = "TN", "Texas" = "TX", 
+  "Utah" = "UT", "Vermont" = "VT", "Virginia" = "VA", "Washington" = "WA", 
+  "West Virginia" = "WV", "Wisconsin" = "WI", "Wyoming" = "WY"
+)
 
-map_data_combined <- left_join(states_map, my_data, by = c("region" = "state"))
+# my_data <- state_means %>%
+#   mutate(state = tolower(StateDesc)) %>%
+#   mutate(state_abbr = recode(state, !!!state_abbreviations))
+
+# Merge map data with your data
+map_data_combined <- left_join(us_states_sf, state_means, by = c("NAME" = "StateDesc"))
 
 ```
 
@@ -152,7 +195,7 @@ map_data_combined <- left_join(states_map, my_data, by = c("region" = "state"))
 
 ```{R}
 
-state_means[state_means == 'district of c'] <- 'DC'
+# state_means[state_means == 'district of c'] <- 'DC'
 
 ```
 
@@ -164,29 +207,251 @@ Now we make the maps and box plots
 Mental Illness Map
 ```{R}
 
-ggplot(map_data_combined, aes(x = long, y = lat, group = group, fill = avgMentalIllness)) +
-  geom_polygon(color = "white", size = 0.3) +
-  coord_fixed(1.3) +
+
+#st_bbox(map_data_clipped)
+
+
+# Merge data
+# my_data <- state_means %>%
+#   mutate(state = tolower(StateDesc)) %>%
+#   mutate(state_abbr = recode(state, !!!state_abbreviations))
+
+#us_states_cleaned <- rmapshaper::ms_filter_islands(us_states_sf, min_area = 5e9)
+
+# Shift AK and HI
+
+
+# bbox <- st_bbox(c(
+#   xmin = -130, xmax = -60,
+#   ymin = 20, ymax = 55
+# ), crs = st_crs(us_states_shifted)) %>%
+#   st_as_sfc()
+# 
+# 
+# 
+# 
+# 
+# bbox <- st_bbox(c(
+#   xmin = -180, xmax = -60,  # longitude range: includes shifted AK/HI
+#   ymin = 20, ymax = 55      # latitude range: enough for whole US
+# ), crs = st_crs(map_data_shifted))
+# 
+# # Crop the spatial data
+# map_data_clipped <- st_crop(map_data_shifted, bbox)
+# 
+# 
+# 
+# 
+# 
+# 
+# # 
+# # bbox <- st_sfc(st_polygon(list(cbind(
+# #   c(-125, -66, -66, -125, -125),  # Longitude
+# #   c(24, 24, 50, 50, 24)           # Latitude
+# # ))), crs = 4326)
+# 
+# # Perform the intersection to crop the data
+# # map_data_mainland <- st_intersection(us_states_sf, bbox)
+# 
+# # Check the result
+# # print(map_data_mainland)
+# 
+# 
+# 
+# bbox <- st_transform(bbox, crs = st_crs(us_states_sf))
+# 
+# # Now you can safely run spatial operations
+# map_data_mainland <- st_intersection(us_states_sf, bbox)
+
+# 
+# 
+# us_states_shifted <- shift_geometry(
+#   us_states_sf,
+#   geoid_column = NULL,
+#   preserve_area = FALSE,
+#   position = c("below", "outside")
+# )
+# 
+# # Join data
+# map_data_shifted <- us_states_shifted %>%
+#   left_join(state_means, by = c("NAME" = "StateDesc"))
+# 
+# # map_data_shifted <- st_crop(map_data_shifted, xmin = -180, xmax = -180, ymin = -180, ymax = 180)
+# 
+# 
+# 
+# 
+
+
+
+
+
+# Plot full map with AK/HI shifted
+formatting <- tigris::states() %>%
+  dplyr::filter(GEOID < "60") %>%
+  tigris::shift_geometry()
+
+formatting <- formatting %>%
+  left_join(state_means, by = c("NAME" = "StateDesc"))
+
+# plot(formatting$geometry, formatting$avgArthritis)
+
+
+ggplot(formatting) +
+  geom_sf(aes(fill = avgArthritis)) +
   scale_fill_viridis_c(
-    option = "plasma",
-    direction = -1,
-    name = "Avg Mental Illness Rate"
-  ) +
-  labs(
-    title = "Average Mental Illness Rate by State",
-    subtitle = "Data from CDC PLACES and ACS",
-    caption = "Source: CDC | Visualization by Naomi Mauss and Grace Wu"
-  ) +
-  theme_void() +
-  theme(
-    plot.title = element_text(hjust = 0.5, size = 16, face = "bold"),
-    plot.subtitle = element_text(hjust = 0.5, size = 12),
-    plot.caption = element_text(hjust = 1, size = 8),
-    legend.position = "right",
-    legend.title = element_text(size = 10, face = "bold"),
-    legend.text = element_text(size = 8)
-  )
+      option = "plasma",
+      direction = -1,
+      name = "Avg Mental Illness Rate"
+    ) +
+    labs(
+      title = "Average Mental Illness Rate by State",
+      subtitle = "Data from CDC PLACES and ACS",
+      caption = "Source: CDC | Visualization by Naomi Mauss and Grace Wu"
+    ) +
+    theme_void() +
+    theme(
+      plot.title = element_text(hjust = 0.5, size = 16, face = "bold"),
+      plot.subtitle = element_text(hjust = 0.5, size = 12),
+      plot.caption = element_text(hjust = 1, size = 8),
+      legend.position = "right",
+      legend.title = element_text(size = 10, face = "bold"),
+      legend.text = element_text(size = 8)
+   )
+
+
 ```
+
+
+``` {html}
+# # Download the shapefile for all states, including Alaska and Hawaii
+# us_states <- states(cb = TRUE)
+# 
+# # Convert to sf object
+# us_states_sf <- st_as_sf(us_states)
+# 
+# # Map state names in your data to their respective state abbreviations
+# state_abbreviations <- c(
+#   "alaska" = "AK", "hawaii" = "HI", "alabama" = "AL", "arizona" = "AZ", 
+#   "arkansas" = "AR", "california" = "CA", "colorado" = "CO", "connecticut" = "CT",
+#   "delaware" = "DE", "florida" = "FL", "georgia" = "GA", "idaho" = "ID", 
+#   "illinois" = "IL", "indiana" = "IN", "iowa" = "IA", "kansas" = "KS", 
+#   "kentucky" = "KY", "louisiana" = "LA", "maine" = "ME", "maryland" = "MD", 
+#   "massachusetts" = "MA", "michigan" = "MI", "minnesota" = "MN", "mississippi" = "MS", 
+#   "missouri" = "MO", "montana" = "MT", "nebraska" = "NE", "nevada" = "NV", 
+#   "new hampshire" = "NH", "new jersey" = "NJ", "new mexico" = "NM", 
+#   "new york" = "NY", "north carolina" = "NC", "north dakota" = "ND", "ohio" = "OH", 
+#   "oklahoma" = "OK", "oregon" = "OR", "pennsylvania" = "PA", "rhode island" = "RI", 
+#   "south carolina" = "SC", "south dakota" = "SD", "tennessee" = "TN", "texas" = "TX", 
+#   "utah" = "UT", "vermont" = "VT", "virginia" = "VA", "washington" = "WA", 
+#   "west virginia" = "WV", "wisconsin" = "WI", "wyoming" = "WY"
+# )
+# 
+# # Merge the map data with your data for the mainland U.S.
+# my_data <- state_means %>%
+#   mutate(state = tolower(StateDesc)) %>%
+#   mutate(state_abbr = recode(state, !!!state_abbreviations))
+# 
+# map_data_mainland <- us_states_sf %>%
+#   filter(!STUSPS %in% c("AK", "HI")) %>%
+#   left_join(my_data, by = c(StateDesc = "state_abbr"))
+# 
+# us_states_shifted <- shift_geometry(
+#   us_states_sf,
+#   geoid_column = NULL,
+#   preserve_area = FALSE,
+#   position = c("below", "outside")
+# )
+# 
+# map_data_shifted <- us_states_shifted %>%
+#   left_join(state_means, by = c("STUSPS" = "state_abbr"))
+# 
+# # Plot the map
+# ggplot() + 
+#   # Mainland U.S. plot
+#   geom_sf(data = map_data_mainland, aes(fill = avgMentalIllness)) + 
+#   coord_sf(
+#     xlim = c(-125, -66),  # Longitude range for mainland U.S.
+#     ylim = c(24, 50),      # Latitude range for mainland U.S.
+#     expand = FALSE
+#   ) + 
+#   scale_fill_viridis_c(
+#     option = "plasma",
+#     direction = -1,
+#     name = "Avg Mental Illness Rate"
+#   ) +
+#   labs(
+#     title = "Average Mental Illness Rate by State",
+#     subtitle = "Data from CDC PLACES and ACS",
+#     caption = "Source: CDC | Visualization by Naomi Mauss and Grace Wu"
+#   ) +
+#   theme_void() +
+#   theme(
+#     plot.title = element_text(hjust = 0.5, size = 16, face = "bold"),
+#     plot.subtitle = element_text(hjust = 0.5, size = 12),
+#     plot.caption = element_text(hjust = 1, size = 8),
+#     legend.position = "right",
+#     legend.title = element_text(size = 10, face = "bold"),
+#     legend.text = element_text(size = 8)
+#   )
+
+
+
+
+
+
+
+# ggplot(map_data_combined, aes(x = long, y = lat, group = group, fill = avgMentalIllness)) +
+#   geom_polygon(color = "white", size = 0.3) +
+#   coord_fixed(1.3) +
+#   scale_fill_viridis_c(
+#     option = "plasma",
+#     direction = -1,
+#     name = "Avg Mental Illness Rate"
+#   ) +
+#   labs(
+#     title = "Average Mental Illness Rate by State",
+#     subtitle = "Data from CDC PLACES and ACS",
+#     caption = "Source: CDC | Visualization by Naomi Mauss and Grace Wu"
+#   ) +
+#   theme_void() +
+#   theme(
+#     plot.title = element_text(hjust = 0.5, size = 16, face = "bold"),
+#     plot.subtitle = element_text(hjust = 0.5, size = 12),
+#     plot.caption = element_text(hjust = 1, size = 8),
+#     legend.position = "right",
+#     legend.title = element_text(size = 10, face = "bold"),
+#     legend.text = element_text(size = 8))
+#     
+# ggplot(map_data_combined) + 
+#   geom_sf(aes(fill = avgMentalIllness)) +  # Fill by 'value' column from your data
+#   coord_sf(
+#     xlim = c(-125, -66),  # Longitude range to zoom in on the mainland US
+#     ylim = c(24, 50),      # Latitude range for mainland U.S.
+#     expand = FALSE
+#   ) + 
+#   scale_fill_viridis_c(
+#     option = "plasma",
+#     direction = -1,
+#     name = "Avg Mental Illness Rate"
+#   ) +
+#   labs(
+#     title = "Average Mental Illness Rate by State",
+#     subtitle = "Data from CDC PLACES and ACS",
+#     caption = "Source: CDC | Visualization by Naomi Mauss and Grace Wu"
+#   ) +
+#   theme_void() +
+#   theme(
+#     plot.title = element_text(hjust = 0.5, size = 16, face = "bold"),
+#     plot.subtitle = element_text(hjust = 0.5, size = 12),
+#     plot.caption = element_text(hjust = 1, size = 8),
+#     legend.position = "right",
+#     legend.title = element_text(size = 10, face = "bold"),
+#     legend.text = element_text(size = 8)
+#   )
+    
+```
+
 
 Mental Illness Box Plot Desc
 
