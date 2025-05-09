@@ -1382,4 +1382,4 @@ ggplot(data = cor_melted, aes(x = Var1, y = Var2, fill = value)) +
                                    size = 10, hjust = 1)) +
   coord_fixed()
 ```
-
+There is a strong negative correlation between binge drinking and all the other variables, as well as a very low correlation between cancer and all the other variables.
