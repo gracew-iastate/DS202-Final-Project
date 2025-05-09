@@ -42,6 +42,7 @@ library(ggplot2)
 library(sf)
 library(stringr)
 library(rmapshaper)
+library(knitr)
 
 ```
 
@@ -1519,10 +1520,12 @@ ggplot(results, aes(x = Illness, y = p_value)) +
 
 ```
 ```{r}
-state_means %>% 
+highest_illness_table <- state_means %>% 
   select(-Group) %>% 
   pivot_longer(cols = -StateDesc, names_to = "Illness", values_to = "Rate") %>% 
   group_by(StateDesc) %>% 
   slice_max(order_by = Rate, n = 1, with_ties = FALSE)
+  
+kable(highest_illness_table, caption = "Most Common Illness By State")
 ```
 
