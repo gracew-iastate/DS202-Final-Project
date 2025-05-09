@@ -1368,3 +1368,18 @@ highest_illness_table <- state_means %>%
 kable(highest_illness_table, caption = "Most Common Illness By State")
 ```
 
+```{r}
+numeric_data <- state_means[sapply(state_means, is.numeric)]
+cor_matrix <- cor(numeric_data, use = "complete.obs")
+cor_melted <- reshape2::melt(cor_matrix)
+ggplot(data = cor_melted, aes(x = Var1, y = Var2, fill = value)) +
+  geom_tile(color = "white") +
+  scale_fill_gradient2(low = "blue", high = "red", mid = "white",
+                       midpoint = 0, limit = c(-1,1), space = "Lab",
+                       name="Correlation") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, 
+                                   size = 10, hjust = 1)) +
+  coord_fixed()
+```
+
