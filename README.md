@@ -8,6 +8,9 @@ Data Creation.Rmd
 
 ``` r
 health <- read.csv("https://docs.google.com/spreadsheets/d/e/2PACX-1vQeaKrReyifqjPVoWB2pYHAo54wLlybjEnMZiPP0i6tdpWb-RLqmwrCvhz8HVOBLCjEo_0qYmrnOkEo/pub?output=csv")
+
+
+healthwfips <-read.csv("https://docs.google.com/spreadsheets/d/e/2PACX-1vTZ4PRD5X0Zcr1rEWwCTusXmef1IkAFgnpPXeJ1dZ3lVpp7iX-ZsbMFCOpkzS-zSA/pub?output=csv")
 ```
 
 ``` r
@@ -15,7 +18,7 @@ library(readr)
 library(dplyr)
 ```
 
-    ## Warning: package 'dplyr' was built under R version 4.4.2
+    ## Warning: package 'dplyr' was built under R version 4.4.3
 
     ## 
     ## Attaching package: 'dplyr'
@@ -35,13 +38,13 @@ library(tidyverse)
 
     ## Warning: package 'tidyverse' was built under R version 4.4.2
 
-    ## Warning: package 'ggplot2' was built under R version 4.4.2
+    ## Warning: package 'ggplot2' was built under R version 4.4.3
 
     ## Warning: package 'stringr' was built under R version 4.4.1
 
     ## ── Attaching core tidyverse packages ──────────────────────── tidyverse 2.0.0 ──
     ## ✔ forcats   1.0.0     ✔ stringr   1.5.1
-    ## ✔ ggplot2   3.5.1     ✔ tibble    3.2.1
+    ## ✔ ggplot2   3.5.2     ✔ tibble    3.2.1
     ## ✔ lubridate 1.9.3     ✔ tidyr     1.3.1
     ## ✔ purrr     1.0.2
 
@@ -89,55 +92,59 @@ library(xgboost)
     ## 
     ##     slice
 
-<!-- # DO NOT KEEP RELOADING THIS!!!!! -->
-<!-- THE DATA CAN BE RETRIEVED FROM THE BOX FOLDER IT TAKES A LOT OF -->
-<!-- COMPUTATIONAL POWER TO RUN THE FOLLOWING CODE CHUNK THANK YOU : ) -->
-<!-- # Get 2019 ACS 5-Year population estimates for all US places -->
-<!-- city_pop <- get_acs( -->
-<!--   geography = "place", -->
-<!--   variables = "B01003_001",  # Total population -->
-<!--   year = 2019, -->
-<!--   survey = "acs5", -->
-<!--   output = "wide", -->
-<!--   geometry = FALSE -->
-<!-- ) -->
-<!-- # This converts the columns to a more readable format -->
-<!-- top_cities <- city_pop %>% -->
-<!--   select(GEOID, NAME, B01003_001E) %>%  # GEOID is the FIPS code -->
-<!--   rename( -->
-<!--     fips = GEOID, -->
-<!--     city = NAME, -->
-<!--     population = B01003_001E -->
-<!--   ) %>% -->
-<!--   arrange(desc(population)) -->
-<!-- # This ensures when we join our data the columns in health and top_cities have the same variable name -->
-<!-- top_cities <- rename(top_cities, CityFIPS = fips) -->
-<!-- #This casts top_cities as numeric so that it can be joined with the numeric CityFIPS column in health -->
-<!-- top_cities$CityFIPS <- as.numeric(top_cities$CityFIPS) -->
-<!-- # This is a slightly destructive join -->
-<!-- # It removes two cities from our original dataset because their FIPS are not in the ACS dataset -->
-<!-- # The fact that they are not in the ACS dataset means we probably don't care about them -->
-<!-- # And 498 cities is an acceptable number of datapoints for the scope of this project -->
-<!-- healthwfips <- inner_join(health, top_cities, by = "CityFIPS") -->
-<!--  install.packages("writexl") -->
-<!--  library(writexl) -->
-<!--  write_xlsx(healthwfips, 'C:\\Users\\songb\\Desktop\\healthwfips.xlsx') -->
-<!--  write_xlsx(map_data_combined, 'C:\\Users\\songb\\Desktop\\map_data_combined.xlsx') -->
-<!--  write_xlsx(healthwfips, 'C:\\Users\\songb\\Desktop\\healthwfips.xlsx') -->
-<!-- ``` -->
-<!-- The questions we want to consider are as such: -->
-<!-- Consider the variables: - mental illness - binge drinking - asthma - -->
-<!-- arthritis - cancer - kidney disease - high blood pressure - diabetes - -->
-<!-- COPD -->
-<!-- Group By State -->
-<!-- # The population represented here is the sum of the considered cities -->
-<!-- # It represents a SAMPLE SIZE and is NOT IS NOT representative of the total population of those states -->
-<!-- state_means <- healthwfips %>% group_by(StateDesc) %>% -->
-<!--   summarise(avgMentalIllness = mean(MHLTH), avgBingeDrinking = mean(BINGE), avgChildhoodAsthma = mean(CASTHMA), avgArthritis = mean(ARTHRITIS), avgCancer = mean(CANCER), avgKidneyDisease = mean(KIDNEY), avgHighBP = mean(BPHIGH), avgDiabetes = mean(DIABETES), avgCOPD = mean(COPD), statePopulation = sum(population)) -->
-<!-- state_means <- state_means %>% -->
-<!--   mutate(StateDesc = tolower(StateDesc)) -->
-<!-- state_means$StateDesc[state_means$StateDesc == "south carolin"] <- "south carolina" -->
-<!-- state_means$StateDesc[state_means$StateDesc == "north carolin"] <- "north carolina" -->
+``` r
+library(tigris)
+```
+
+    ## Warning: package 'tigris' was built under R version 4.4.3
+
+    ## To enable caching of data, set `options(tigris_use_cache = TRUE)`
+    ## in your R script or .Rprofile.
+
+``` r
+library(ggplot2)
+library(sf)
+```
+
+    ## Warning: package 'sf' was built under R version 4.4.3
+
+    ## Linking to GEOS 3.13.0, GDAL 3.10.1, PROJ 9.5.1; sf_use_s2() is TRUE
+
+``` r
+library(stringr)
+library(rmapshaper)
+```
+
+    ## Warning: package 'rmapshaper' was built under R version 4.4.3
+
+``` r
+state_means <- healthwfips %>%
+  group_by(StateDesc) %>%
+  summarise(
+    avgMentalIllness = mean(MHLTH, na.rm = TRUE),
+    avgBingeDrinking = mean(BINGE, na.rm = TRUE),
+    avgChildhoodAsthma = mean(CASTHMA, na.rm = TRUE),
+    avgArthritis = mean(ARTHRITIS, na.rm = TRUE),
+    avgCancer = mean(CANCER, na.rm = TRUE),
+    avgKidneyDisease = mean(KIDNEY, na.rm = TRUE),
+    avgHighBP = mean(BPHIGH, na.rm = TRUE),
+    avgDiabetes = mean(DIABETES, na.rm = TRUE),
+    avgCOPD = mean(COPD, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+state_means <- state_means %>%
+  mutate(StateDesc = tolower(StateDesc))
+
+state_means <- healthwfips %>% group_by(StateDesc) %>%
+  summarise(avgMentalIllness = mean(MHLTH), avgBingeDrinking = mean(BINGE), avgChildhoodAsthma = mean(CASTHMA), avgArthritis = mean(ARTHRITIS), avgCancer = mean(CANCER), avgKidneyDisease = mean(KIDNEY), avgHighBP = mean(BPHIGH), avgDiabetes = mean(DIABETES), avgCOPD = mean(COPD))
+
+
+
+
+state_means$StateDesc[state_means$StateDesc == "South Carolin"] <- "South Carolina"
+state_means$StateDesc[state_means$StateDesc == "North Carolin"] <- "North Carolina"
+```
 
 Prepare the data to map by state
 
@@ -148,15 +155,69 @@ Prepare the data to map by state
 #library(maps)      # for map_data
 #library(viridis)   # optional: better color scale
 
-state_means <- read.csv("https://docs.google.com/spreadsheets/d/e/2PACX-1vRPtd9hIIamvljlqlmKcpm8xzcoSxkiNT4bLA78cgczFQqrSjI1DRrKnNiKR5Ger9CZHL8AEd0bx7OW/pub?output=csv")
+# state_means <- read.csv("https://docs.google.com/spreadsheets/d/e/2PACX-1vRPtd9hIIamvljlqlmKcpm8xzcoSxkiNT4bLA78cgczFQqrSjI1DRrKnNiKR5Ger9CZHL8AEd0bx7OW/pub?output=csv")
+
+state_means$StateDesc <- str_to_title(state_means$StateDesc)
 ```
 
 ``` r
-states_map <- map_data("state")
+# Download the shapefile for all states, including Alaska and Hawaii
+us_states_sf <- states(cb = TRUE)
+```
 
-my_data <- state_means %>% mutate(state = tolower(StateDesc))
+    ## Retrieving data for the year 2024
 
-map_data_combined <- left_join(states_map, my_data, by = c("region" = "state"))
+    ##   |                                                                              |                                                                      |   0%  |                                                                              |=                                                                     |   1%  |                                                                              |=                                                                     |   2%  |                                                                              |==                                                                    |   2%  |                                                                              |===                                                                   |   4%  |                                                                              |===                                                                   |   5%  |                                                                              |====                                                                  |   5%  |                                                                              |=====                                                                 |   7%  |                                                                              |=====                                                                 |   8%  |                                                                              |======                                                                |   8%  |                                                                              |======                                                                |   9%  |                                                                              |=======                                                               |  11%  |                                                                              |=========                                                             |  13%  |                                                                              |==========                                                            |  14%  |                                                                              |============                                                          |  17%  |                                                                              |=============                                                         |  18%  |                                                                              |==============                                                        |  20%  |                                                                              |==============                                                        |  21%  |                                                                              |===============                                                       |  21%  |                                                                              |================                                                      |  22%  |                                                                              |=================                                                     |  25%  |                                                                              |==================                                                    |  25%  |                                                                              |==================                                                    |  26%  |                                                                              |===================                                                   |  28%  |                                                                              |=====================                                                 |  30%  |                                                                              |======================                                                |  31%  |                                                                              |======================                                                |  32%  |                                                                              |=======================                                               |  33%  |                                                                              |========================                                              |  34%  |                                                                              |========================                                              |  35%  |                                                                              |=========================                                             |  35%  |                                                                              |=========================                                             |  36%  |                                                                              |==========================                                            |  37%  |                                                                              |===========================                                           |  39%  |                                                                              |============================                                          |  40%  |                                                                              |=============================                                         |  42%  |                                                                              |==============================                                        |  43%  |                                                                              |===============================                                       |  45%  |                                                                              |================================                                      |  46%  |                                                                              |=================================                                     |  47%  |                                                                              |==================================                                    |  48%  |                                                                              |==================================                                    |  49%  |                                                                              |===================================                                   |  49%  |                                                                              |===================================                                   |  50%  |                                                                              |====================================                                  |  51%  |                                                                              |======================================                                |  55%  |                                                                              |=======================================                               |  55%  |                                                                              |=======================================                               |  56%  |                                                                              |========================================                              |  57%  |                                                                              |=========================================                             |  58%  |                                                                              |=========================================                             |  59%  |                                                                              |==========================================                            |  60%  |                                                                              |===========================================                           |  61%  |                                                                              |=============================================                         |  64%  |                                                                              |==============================================                        |  66%  |                                                                              |===============================================                       |  67%  |                                                                              |===============================================                       |  68%  |                                                                              |================================================                      |  69%  |                                                                              |=================================================                     |  71%  |                                                                              |===================================================                   |  73%  |                                                                              |=====================================================                 |  76%  |                                                                              |======================================================                |  77%  |                                                                              |=======================================================               |  78%  |                                                                              |========================================================              |  80%  |                                                                              |=========================================================             |  82%  |                                                                              |===========================================================           |  84%  |                                                                              |============================================================          |  86%  |                                                                              |=============================================================         |  87%  |                                                                              |===============================================================       |  90%  |                                                                              |=================================================================     |  93%  |                                                                              |==================================================================    |  95%  |                                                                              |===================================================================   |  95%  |                                                                              |===================================================================== |  98%  |                                                                              |======================================================================|  99%  |                                                                              |======================================================================| 100%
+
+``` r
+# View the structure of the data (optional)
+head(us_states_sf)
+```
+
+    ## Simple feature collection with 6 features and 9 fields
+    ## Geometry type: MULTIPOLYGON
+    ## Dimension:     XY
+    ## Bounding box:  xmin: -124.4096 ymin: 30.22333 xmax: -80.84038 ymax: 45.94545
+    ## Geodetic CRS:  NAD83
+    ##   STATEFP  STATENS     GEOIDFQ GEOID STUSPS         NAME LSAD        ALAND
+    ## 1      35 00897535 0400000US35    35     NM   New Mexico   00 314198519809
+    ## 2      46 01785534 0400000US46    46     SD South Dakota   00 196341670967
+    ## 3      06 01779778 0400000US06    06     CA   California   00 403673433805
+    ## 4      21 01779786 0400000US21    21     KY     Kentucky   00 102266755818
+    ## 5      01 01779775 0400000US01    01     AL      Alabama   00 131185561946
+    ## 6      13 01705317 0400000US13    13     GA      Georgia   00 149485762701
+    ##        AWATER                       geometry
+    ## 1   726531289 MULTIPOLYGON (((-109.0502 3...
+    ## 2  3387563375 MULTIPOLYGON (((-104.0579 4...
+    ## 3 20291632828 MULTIPOLYGON (((-118.6044 3...
+    ## 4  2384136185 MULTIPOLYGON (((-89.40565 3...
+    ## 5  4581813708 MULTIPOLYGON (((-88.05338 3...
+    ## 6  4419221858 MULTIPOLYGON (((-81.27939 3...
+
+``` r
+# Map state names in your data to their respective state abbreviations
+state_abbreviations <- c(
+  "Alaska" = "AK", "Hawaii" = "HI", "Alabama" = "AL", "Arizona" = "AZ", 
+  "Arkansas" = "AR", "California" = "CA", "Colorado" = "CO", "Connecticut" = "CT",
+  "Delaware" = "DE", "Florida" = "FL", "Georgia" = "GA", "Hawaii" = "HI", 
+  "Idaho" = "ID", "Illinois" = "IL", "Indiana" = "IN", "Iowa" = "IA", 
+  "Kansas" = "KS", "Kentucky" = "KY", "Louisiana" = "LA", "Maine" = "ME", 
+  "Maryland" = "MD", "Massachusetts" = "MA", "Michigan" = "MI", "Minnesota" = "MN", 
+  "Mississippi" = "MS", "Missouri" = "MO", "Montana" = "MT", "Nebraska" = "NE", 
+  "Nevada" = "NV", "New Hampshire" = "NH", "New Jersey" = "NJ", "New Mexico" = "NM", 
+  "New York" = "NY", "North Carolina" = "NC", "North Dakota" = "ND", "Ohio" = "OH", 
+  "Oklahoma" = "OK", "Oregon" = "OR", "Pennsylvania" = "PA", "Rhode Island" = "RI", 
+  "South Carolina" = "SC", "South Dakota" = "SD", "Tennessee" = "TN", "Texas" = "TX", 
+  "Utah" = "UT", "Vermont" = "VT", "Virginia" = "VA", "Washington" = "WA", 
+  "West Virginia" = "WV", "Wisconsin" = "WI", "Wyoming" = "WY"
+)
+
+# my_data <- state_means %>%
+#   mutate(state = tolower(StateDesc)) %>%
+#   mutate(state_abbr = recode(state, !!!state_abbreviations))
+
+# Merge map data with your data
+map_data_combined <- left_join(us_states_sf, state_means, by = c("NAME" = "StateDesc"))
 ```
 
 ``` r
@@ -168,10 +229,10 @@ map_data_combined <- left_join(states_map, my_data, by = c("region" = "state"))
  
  
 # write_xlsx(state_means, 'C:\\Users\\songb\\Desktop\\state_means.xlsx')
-```
 
-``` r
-state_means[state_means == 'district of c'] <- 'DC'
+
+
+# state_means[state_means == 'district of c'] <- 'DC'
 ```
 
 Now we make the maps and box plots
@@ -179,37 +240,176 @@ Now we make the maps and box plots
 Mental Illness Map
 
 ``` r
-ggplot(map_data_combined, aes(x = long, y = lat, group = group, fill = avgMentalIllness)) +
-  geom_polygon(color = "white", size = 0.3) +
-  coord_fixed(1.3) +
-  scale_fill_viridis_c(
-    option = "plasma",
-    direction = -1,
-    name = "Avg Mental Illness Rate"
-  ) +
-  labs(
-    title = "Average Mental Illness Rate by State",
-    subtitle = "Data from CDC PLACES and ACS",
-    caption = "Source: CDC | Visualization by Naomi Mauss and Grace Wu"
-  ) +
-  theme_void() +
-  theme(
-    plot.title = element_text(hjust = 0.5, size = 16, face = "bold"),
-    plot.subtitle = element_text(hjust = 0.5, size = 12),
-    plot.caption = element_text(hjust = 1, size = 8),
-    legend.position = "right",
-    legend.title = element_text(size = 10, face = "bold"),
-    legend.text = element_text(size = 8)
-  )
+# Plot full map with AK/HI shifted
+formatting <- tigris::states() %>%
+  dplyr::filter(GEOID < "60") %>%
+  tigris::shift_geometry()
 ```
 
-    ## Warning: Using `size` aesthetic for lines was deprecated in ggplot2 3.4.0.
-    ## ℹ Please use `linewidth` instead.
-    ## This warning is displayed once every 8 hours.
-    ## Call `lifecycle::last_lifecycle_warnings()` to see where this warning was
-    ## generated.
+    ## Retrieving data for the year 2024
+
+    ##   |                                                                              |                                                                      |   0%  |                                                                              |                                                                      |   1%  |                                                                              |=                                                                     |   1%  |                                                                              |=                                                                     |   2%  |                                                                              |==                                                                    |   2%  |                                                                              |==                                                                    |   3%  |                                                                              |===                                                                   |   4%  |                                                                              |====                                                                  |   5%  |                                                                              |====                                                                  |   6%  |                                                                              |=====                                                                 |   7%  |                                                                              |=====                                                                 |   8%  |                                                                              |======                                                                |   8%  |                                                                              |======                                                                |   9%  |                                                                              |=======                                                               |  10%  |                                                                              |=======                                                               |  11%  |                                                                              |========                                                              |  11%  |                                                                              |========                                                              |  12%  |                                                                              |=========                                                             |  12%  |                                                                              |=========                                                             |  13%  |                                                                              |==========                                                            |  14%  |                                                                              |==========                                                            |  15%  |                                                                              |===========                                                           |  15%  |                                                                              |===========                                                           |  16%  |                                                                              |============                                                          |  17%  |                                                                              |============                                                          |  18%  |                                                                              |=============                                                         |  18%  |                                                                              |=============                                                         |  19%  |                                                                              |==============                                                        |  20%  |                                                                              |==============                                                        |  21%  |                                                                              |===============                                                       |  21%  |                                                                              |===============                                                       |  22%  |                                                                              |================                                                      |  22%  |                                                                              |================                                                      |  23%  |                                                                              |=================                                                     |  24%  |                                                                              |=================                                                     |  25%  |                                                                              |==================                                                    |  25%  |                                                                              |==================                                                    |  26%  |                                                                              |===================                                                   |  26%  |                                                                              |===================                                                   |  27%  |                                                                              |===================                                                   |  28%  |                                                                              |====================                                                  |  28%  |                                                                              |====================                                                  |  29%  |                                                                              |=====================                                                 |  29%  |                                                                              |=====================                                                 |  30%  |                                                                              |======================                                                |  31%  |                                                                              |======================                                                |  32%  |                                                                              |=======================                                               |  32%  |                                                                              |=======================                                               |  33%  |                                                                              |=======================                                               |  34%  |                                                                              |========================                                              |  34%  |                                                                              |=========================                                             |  35%  |                                                                              |=========================                                             |  36%  |                                                                              |==========================                                            |  37%  |                                                                              |==========================                                            |  38%  |                                                                              |===========================                                           |  38%  |                                                                              |===========================                                           |  39%  |                                                                              |============================                                          |  39%  |                                                                              |============================                                          |  40%  |                                                                              |=============================                                         |  41%  |                                                                              |=============================                                         |  42%  |                                                                              |==============================                                        |  42%  |                                                                              |==============================                                        |  43%  |                                                                              |===============================                                       |  44%  |                                                                              |===============================                                       |  45%  |                                                                              |================================                                      |  46%  |                                                                              |=================================                                     |  47%  |                                                                              |=================================                                     |  48%  |                                                                              |==================================                                    |  48%  |                                                                              |==================================                                    |  49%  |                                                                              |===================================                                   |  50%  |                                                                              |===================================                                   |  51%  |                                                                              |====================================                                  |  51%  |                                                                              |====================================                                  |  52%  |                                                                              |=====================================                                 |  52%  |                                                                              |=====================================                                 |  53%  |                                                                              |=====================================                                 |  54%  |                                                                              |======================================                                |  54%  |                                                                              |======================================                                |  55%  |                                                                              |=======================================                               |  56%  |                                                                              |========================================                              |  57%  |                                                                              |========================================                              |  58%  |                                                                              |=========================================                             |  58%  |                                                                              |=========================================                             |  59%  |                                                                              |==========================================                            |  59%  |                                                                              |==========================================                            |  60%  |                                                                              |===========================================                           |  61%  |                                                                              |===========================================                           |  62%  |                                                                              |============================================                          |  62%  |                                                                              |============================================                          |  63%  |                                                                              |============================================                          |  64%  |                                                                              |=============================================                         |  64%  |                                                                              |=============================================                         |  65%  |                                                                              |==============================================                        |  65%  |                                                                              |==============================================                        |  66%  |                                                                              |===============================================                       |  66%  |                                                                              |===============================================                       |  67%  |                                                                              |===============================================                       |  68%  |                                                                              |================================================                      |  68%  |                                                                              |================================================                      |  69%  |                                                                              |=================================================                     |  69%  |                                                                              |=================================================                     |  70%  |                                                                              |==================================================                    |  71%  |                                                                              |==================================================                    |  72%  |                                                                              |===================================================                   |  72%  |                                                                              |===================================================                   |  73%  |                                                                              |====================================================                  |  74%  |                                                                              |====================================================                  |  75%  |                                                                              |=====================================================                 |  76%  |                                                                              |======================================================                |  77%  |                                                                              |======================================================                |  78%  |                                                                              |=======================================================               |  78%  |                                                                              |=======================================================               |  79%  |                                                                              |========================================================              |  79%  |                                                                              |========================================================              |  80%  |                                                                              |=========================================================             |  81%  |                                                                              |=========================================================             |  82%  |                                                                              |==========================================================            |  82%  |                                                                              |==========================================================            |  83%  |                                                                              |==========================================================            |  84%  |                                                                              |===========================================================           |  84%  |                                                                              |===========================================================           |  85%  |                                                                              |============================================================          |  85%  |                                                                              |============================================================          |  86%  |                                                                              |=============================================================         |  87%  |                                                                              |==============================================================        |  88%  |                                                                              |==============================================================        |  89%  |                                                                              |===============================================================       |  90%  |                                                                              |================================================================      |  91%  |                                                                              |================================================================      |  92%  |                                                                              |=================================================================     |  92%  |                                                                              |=================================================================     |  93%  |                                                                              |==================================================================    |  94%  |                                                                              |==================================================================    |  95%  |                                                                              |===================================================================   |  96%  |                                                                              |====================================================================  |  97%  |                                                                              |====================================================================  |  98%  |                                                                              |===================================================================== |  98%  |                                                                              |===================================================================== |  99%  |                                                                              |======================================================================| 100%
+
+``` r
+formatting <- formatting %>%
+  left_join(state_means, by = c("NAME" = "StateDesc"))
+
+# plot(formatting$geometry, formatting$avgArthritis)
+
+
+ggplot(formatting) +
+  geom_sf(aes(fill = avgMentalIllness)) +
+  scale_fill_viridis_c(
+      option = "plasma",
+      direction = -1,
+      name = "Avg Mental Illness Rate"
+    ) +
+    labs(
+      title = "Average Mental Illness Rate by State",
+      subtitle = "Data from CDC PLACES and ACS",
+      caption = "Source: CDC | Visualization by Naomi Mauss and Grace Wu"
+    ) +
+    theme_void() +
+    theme(
+      plot.title = element_text(hjust = 0.5, size = 16, face = "bold"),
+      plot.subtitle = element_text(hjust = 0.5, size = 12),
+      plot.caption = element_text(hjust = 1, size = 8),
+      legend.position = "right",
+      legend.title = element_text(size = 10, face = "bold"),
+      legend.text = element_text(size = 8)
+   )
+```
 
 ![](README_files/figure-gfm/unnamed-chunk-7-1.png)<!-- -->
+
+``` html
+# # Download the shapefile for all states, including Alaska and Hawaii
+# us_states <- states(cb = TRUE)
+# 
+# # Convert to sf object
+# us_states_sf <- st_as_sf(us_states)
+# 
+# # Map state names in your data to their respective state abbreviations
+# state_abbreviations <- c(
+#   "alaska" = "AK", "hawaii" = "HI", "alabama" = "AL", "arizona" = "AZ", 
+#   "arkansas" = "AR", "california" = "CA", "colorado" = "CO", "connecticut" = "CT",
+#   "delaware" = "DE", "florida" = "FL", "georgia" = "GA", "idaho" = "ID", 
+#   "illinois" = "IL", "indiana" = "IN", "iowa" = "IA", "kansas" = "KS", 
+#   "kentucky" = "KY", "louisiana" = "LA", "maine" = "ME", "maryland" = "MD", 
+#   "massachusetts" = "MA", "michigan" = "MI", "minnesota" = "MN", "mississippi" = "MS", 
+#   "missouri" = "MO", "montana" = "MT", "nebraska" = "NE", "nevada" = "NV", 
+#   "new hampshire" = "NH", "new jersey" = "NJ", "new mexico" = "NM", 
+#   "new york" = "NY", "north carolina" = "NC", "north dakota" = "ND", "ohio" = "OH", 
+#   "oklahoma" = "OK", "oregon" = "OR", "pennsylvania" = "PA", "rhode island" = "RI", 
+#   "south carolina" = "SC", "south dakota" = "SD", "tennessee" = "TN", "texas" = "TX", 
+#   "utah" = "UT", "vermont" = "VT", "virginia" = "VA", "washington" = "WA", 
+#   "west virginia" = "WV", "wisconsin" = "WI", "wyoming" = "WY"
+# )
+# 
+# # Merge the map data with your data for the mainland U.S.
+# my_data <- state_means %>%
+#   mutate(state = tolower(StateDesc)) %>%
+#   mutate(state_abbr = recode(state, !!!state_abbreviations))
+# 
+# map_data_mainland <- us_states_sf %>%
+#   filter(!STUSPS %in% c("AK", "HI")) %>%
+#   left_join(my_data, by = c(StateDesc = "state_abbr"))
+# 
+# us_states_shifted <- shift_geometry(
+#   us_states_sf,
+#   geoid_column = NULL,
+#   preserve_area = FALSE,
+#   position = c("below", "outside")
+# )
+# 
+# map_data_shifted <- us_states_shifted %>%
+#   left_join(state_means, by = c("STUSPS" = "state_abbr"))
+# 
+# # Plot the map
+# ggplot() + 
+#   # Mainland U.S. plot
+#   geom_sf(data = map_data_mainland, aes(fill = avgMentalIllness)) + 
+#   coord_sf(
+#     xlim = c(-125, -66),  # Longitude range for mainland U.S.
+#     ylim = c(24, 50),      # Latitude range for mainland U.S.
+#     expand = FALSE
+#   ) + 
+#   scale_fill_viridis_c(
+#     option = "plasma",
+#     direction = -1,
+#     name = "Avg Mental Illness Rate"
+#   ) +
+#   labs(
+#     title = "Average Mental Illness Rate by State",
+#     subtitle = "Data from CDC PLACES and ACS",
+#     caption = "Source: CDC | Visualization by Naomi Mauss and Grace Wu"
+#   ) +
+#   theme_void() +
+#   theme(
+#     plot.title = element_text(hjust = 0.5, size = 16, face = "bold"),
+#     plot.subtitle = element_text(hjust = 0.5, size = 12),
+#     plot.caption = element_text(hjust = 1, size = 8),
+#     legend.position = "right",
+#     legend.title = element_text(size = 10, face = "bold"),
+#     legend.text = element_text(size = 8)
+#   )
+
+
+
+
+
+
+
+# ggplot(map_data_combined, aes(x = long, y = lat, group = group, fill = avgMentalIllness)) +
+#   geom_polygon(color = "white", size = 0.3) +
+#   coord_fixed(1.3) +
+#   scale_fill_viridis_c(
+#     option = "plasma",
+#     direction = -1,
+#     name = "Avg Mental Illness Rate"
+#   ) +
+#   labs(
+#     title = "Average Mental Illness Rate by State",
+#     subtitle = "Data from CDC PLACES and ACS",
+#     caption = "Source: CDC | Visualization by Naomi Mauss and Grace Wu"
+#   ) +
+#   theme_void() +
+#   theme(
+#     plot.title = element_text(hjust = 0.5, size = 16, face = "bold"),
+#     plot.subtitle = element_text(hjust = 0.5, size = 12),
+#     plot.caption = element_text(hjust = 1, size = 8),
+#     legend.position = "right",
+#     legend.title = element_text(size = 10, face = "bold"),
+#     legend.text = element_text(size = 8))
+#     
+# ggplot(map_data_combined) + 
+#   geom_sf(aes(fill = avgMentalIllness)) +  # Fill by 'value' column from your data
+#   coord_sf(
+#     xlim = c(-125, -66),  # Longitude range to zoom in on the mainland US
+#     ylim = c(24, 50),      # Latitude range for mainland U.S.
+#     expand = FALSE
+#   ) + 
+#   scale_fill_viridis_c(
+#     option = "plasma",
+#     direction = -1,
+#     name = "Avg Mental Illness Rate"
+#   ) +
+#   labs(
+#     title = "Average Mental Illness Rate by State",
+#     subtitle = "Data from CDC PLACES and ACS",
+#     caption = "Source: CDC | Visualization by Naomi Mauss and Grace Wu"
+#   ) +
+#   theme_void() +
+#   theme(
+#     plot.title = element_text(hjust = 0.5, size = 16, face = "bold"),
+#     plot.subtitle = element_text(hjust = 0.5, size = 12),
+#     plot.caption = element_text(hjust = 1, size = 8),
+#     legend.position = "right",
+#     legend.title = element_text(size = 10, face = "bold"),
+#     legend.text = element_text(size = 8)
+#   )
+    
+```
 
 Mental Illness Box Plot Desc
 
@@ -266,14 +466,13 @@ ggplot() +
     ## Scale for x is already present.
     ## Adding another scale for x, which will replace the existing scale.
 
-![](README_files/figure-gfm/unnamed-chunk-8-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-9-1.png)<!-- -->
 
 Binge Drinking Map
 
 ``` r
-ggplot(map_data_combined, aes(x = long, y = lat, group = group, fill = avgBingeDrinking)) +
-  geom_polygon(color = "white", size = 0.3) +
-  coord_fixed(1.3) +
+ggplot(formatting) +
+  geom_sf(aes(fill = avgBingeDrinking))+
   scale_fill_viridis_c(
     option = "plasma",
     direction = -1,
@@ -295,7 +494,7 @@ ggplot(map_data_combined, aes(x = long, y = lat, group = group, fill = avgBingeD
   )
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-9-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-10-1.png)<!-- -->
 
 Binge Drinking Box Plot Desc
 
@@ -352,14 +551,13 @@ ggplot() +
     ## Scale for x is already present.
     ## Adding another scale for x, which will replace the existing scale.
 
-![](README_files/figure-gfm/unnamed-chunk-10-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-11-1.png)<!-- -->
 
 Asthma Map
 
 ``` r
-ggplot(map_data_combined, aes(x = long, y = lat, group = group, fill = avgChildhoodAsthma)) +
-  geom_polygon(color = "white", size = 0.3) +
-  coord_fixed(1.3) +
+ggplot(formatting) +
+  geom_sf(aes(fill = avgChildhoodAsthma)) +
   scale_fill_viridis_c(
     option = "plasma",
     direction = -1,
@@ -381,7 +579,7 @@ ggplot(map_data_combined, aes(x = long, y = lat, group = group, fill = avgChildh
   )
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-11-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-12-1.png)<!-- -->
 
 Childhood Asthma Box Plot Desc
 
@@ -438,14 +636,13 @@ ggplot() +
     ## Scale for x is already present.
     ## Adding another scale for x, which will replace the existing scale.
 
-![](README_files/figure-gfm/unnamed-chunk-12-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-13-1.png)<!-- -->
 
 Arthritis Map
 
 ``` r
-ggplot(map_data_combined, aes(x = long, y = lat, group = group, fill = avgArthritis)) +
-  geom_polygon(color = "white", size = 0.3) +
-  coord_fixed(1.3) +
+ggplot(formatting) +
+  geom_sf(aes(fill = avgArthritis)) +
   scale_fill_viridis_c(
     option = "plasma",
     direction = -1,
@@ -467,7 +664,7 @@ ggplot(map_data_combined, aes(x = long, y = lat, group = group, fill = avgArthri
   )
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-13-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-14-1.png)<!-- -->
 
 Arthritis Box Plot Desc
 
@@ -524,14 +721,13 @@ ggplot() +
     ## Scale for x is already present.
     ## Adding another scale for x, which will replace the existing scale.
 
-![](README_files/figure-gfm/unnamed-chunk-14-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-15-1.png)<!-- -->
 
 Kidney Disease Map
 
 ``` r
-ggplot(map_data_combined, aes(x = long, y = lat, group = group, fill = avgKidneyDisease)) +
-  geom_polygon(color = "white", size = 0.3) +
-  coord_fixed(1.3) +
+ggplot(formatting) +
+  geom_sf(aes(fill = avgKidneyDisease)) +
   scale_fill_viridis_c(
     option = "plasma",
     direction = -1,
@@ -553,7 +749,7 @@ ggplot(map_data_combined, aes(x = long, y = lat, group = group, fill = avgKidney
   )
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-15-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-16-1.png)<!-- -->
 
 Kidney Disease Box Plot Desc
 
@@ -610,14 +806,13 @@ ggplot() +
     ## Scale for x is already present.
     ## Adding another scale for x, which will replace the existing scale.
 
-![](README_files/figure-gfm/unnamed-chunk-16-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-17-1.png)<!-- -->
 
 High Blood Pressure Map
 
 ``` r
-ggplot(map_data_combined, aes(x = long, y = lat, group = group, fill = avgHighBP)) +
-  geom_polygon(color = "white", size = 0.3) +
-  coord_fixed(1.3) +
+ggplot(formatting) +
+  geom_sf(aes(fill = avgHighBP)) +
   scale_fill_viridis_c(
     option = "plasma",
     direction = -1,
@@ -639,7 +834,7 @@ ggplot(map_data_combined, aes(x = long, y = lat, group = group, fill = avgHighBP
   )
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-17-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-18-1.png)<!-- -->
 
 High Blood Pressure Box Plot Desc
 
@@ -696,14 +891,13 @@ ggplot() +
     ## Scale for x is already present.
     ## Adding another scale for x, which will replace the existing scale.
 
-![](README_files/figure-gfm/unnamed-chunk-18-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-19-1.png)<!-- -->
 
 Cancer Map
 
 ``` r
-ggplot(map_data_combined, aes(x = long, y = lat, group = group, fill = avgCancer)) +
-  geom_polygon(color = "white", size = 0.3) +
-  coord_fixed(1.3) +
+ggplot(formatting) +
+  geom_sf(aes(fill = avgCancer)) +
   scale_fill_viridis_c(
     option = "plasma",
     direction = -1,
@@ -724,7 +918,7 @@ ggplot(map_data_combined, aes(x = long, y = lat, group = group, fill = avgCancer
     legend.text = element_text(size = 8))
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-19-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-20-1.png)<!-- -->
 
 Childhood Box Plot Desc
 
@@ -781,14 +975,13 @@ ggplot() +
     ## Scale for x is already present.
     ## Adding another scale for x, which will replace the existing scale.
 
-![](README_files/figure-gfm/unnamed-chunk-20-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-21-1.png)<!-- -->
 
 Diabetes Map
 
 ``` r
-ggplot(map_data_combined, aes(x = long, y = lat, group = group, fill = avgDiabetes)) +
-  geom_polygon(color = "white", size = 0.3) +
-  coord_fixed(1.3) +
+ggplot(formatting) +
+  geom_sf(aes(fill = avgDiabetes)) +
   scale_fill_viridis_c(
     option = "plasma",
     direction = -1,
@@ -809,7 +1002,7 @@ ggplot(map_data_combined, aes(x = long, y = lat, group = group, fill = avgDiabet
     legend.text = element_text(size = 8))
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-21-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-22-1.png)<!-- -->
 
 Childhood Box Plot Desc
 
@@ -866,14 +1059,13 @@ ggplot() +
     ## Scale for x is already present.
     ## Adding another scale for x, which will replace the existing scale.
 
-![](README_files/figure-gfm/unnamed-chunk-22-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-23-1.png)<!-- -->
 
 COPD Map
 
 ``` r
-ggplot(map_data_combined, aes(x = long, y = lat, group = group, fill = avgCOPD)) +
-  geom_polygon(color = "white", size = 0.3) +
-  coord_fixed(1.3) +
+ggplot(formatting) +
+  geom_sf(aes(fill = avgCOPD)) +
   scale_fill_viridis_c(
     option = "plasma",
     direction = -1,
@@ -895,7 +1087,7 @@ ggplot(map_data_combined, aes(x = long, y = lat, group = group, fill = avgCOPD))
   )
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-23-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-24-1.png)<!-- -->
 
 COPD Box Plot Desc
 
@@ -954,7 +1146,7 @@ ggplot() +
     ## Scale for x is already present.
     ## Adding another scale for x, which will replace the existing scale.
 
-![](README_files/figure-gfm/unnamed-chunk-24-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-25-1.png)<!-- -->
 
 Find Healthiest States
 
@@ -1088,20 +1280,20 @@ for (col_name in colnames(healthiest)) {
 gt_table
 ```
 
-<div id="ujywndolco" style="padding-left:0px;padding-right:0px;padding-top:10px;padding-bottom:10px;overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
-<style>#ujywndolco table {
+<div id="urgvkanigd" style="padding-left:0px;padding-right:0px;padding-top:10px;padding-bottom:10px;overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
+<style>#urgvkanigd table {
   font-family: system-ui, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
-&#10;#ujywndolco thead, #ujywndolco tbody, #ujywndolco tfoot, #ujywndolco tr, #ujywndolco td, #ujywndolco th {
+&#10;#urgvkanigd thead, #urgvkanigd tbody, #urgvkanigd tfoot, #urgvkanigd tr, #urgvkanigd td, #urgvkanigd th {
   border-style: none;
 }
-&#10;#ujywndolco p {
+&#10;#urgvkanigd p {
   margin: 0;
   padding: 0;
 }
-&#10;#ujywndolco .gt_table {
+&#10;#urgvkanigd .gt_table {
   display: table;
   border-collapse: collapse;
   line-height: normal;
@@ -1126,11 +1318,11 @@ gt_table
   border-left-width: 2px;
   border-left-color: #D3D3D3;
 }
-&#10;#ujywndolco .gt_caption {
+&#10;#urgvkanigd .gt_caption {
   padding-top: 4px;
   padding-bottom: 4px;
 }
-&#10;#ujywndolco .gt_title {
+&#10;#urgvkanigd .gt_title {
   color: #333333;
   font-size: 125%;
   font-weight: initial;
@@ -1141,7 +1333,7 @@ gt_table
   border-bottom-color: #FFFFFF;
   border-bottom-width: 0;
 }
-&#10;#ujywndolco .gt_subtitle {
+&#10;#urgvkanigd .gt_subtitle {
   color: #333333;
   font-size: 85%;
   font-weight: initial;
@@ -1152,7 +1344,7 @@ gt_table
   border-top-color: #FFFFFF;
   border-top-width: 0;
 }
-&#10;#ujywndolco .gt_heading {
+&#10;#urgvkanigd .gt_heading {
   background-color: #FFFFFF;
   text-align: center;
   border-bottom-color: #FFFFFF;
@@ -1163,12 +1355,12 @@ gt_table
   border-right-width: 1px;
   border-right-color: #D3D3D3;
 }
-&#10;#ujywndolco .gt_bottom_border {
+&#10;#urgvkanigd .gt_bottom_border {
   border-bottom-style: solid;
   border-bottom-width: 2px;
   border-bottom-color: #D3D3D3;
 }
-&#10;#ujywndolco .gt_col_headings {
+&#10;#urgvkanigd .gt_col_headings {
   border-top-style: solid;
   border-top-width: 2px;
   border-top-color: #D3D3D3;
@@ -1182,7 +1374,7 @@ gt_table
   border-right-width: 1px;
   border-right-color: #D3D3D3;
 }
-&#10;#ujywndolco .gt_col_heading {
+&#10;#urgvkanigd .gt_col_heading {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -1201,7 +1393,7 @@ gt_table
   padding-right: 5px;
   overflow-x: hidden;
 }
-&#10;#ujywndolco .gt_column_spanner_outer {
+&#10;#urgvkanigd .gt_column_spanner_outer {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -1212,13 +1404,13 @@ gt_table
   padding-left: 4px;
   padding-right: 4px;
 }
-&#10;#ujywndolco .gt_column_spanner_outer:first-child {
+&#10;#urgvkanigd .gt_column_spanner_outer:first-child {
   padding-left: 0;
 }
-&#10;#ujywndolco .gt_column_spanner_outer:last-child {
+&#10;#urgvkanigd .gt_column_spanner_outer:last-child {
   padding-right: 0;
 }
-&#10;#ujywndolco .gt_column_spanner {
+&#10;#urgvkanigd .gt_column_spanner {
   border-bottom-style: solid;
   border-bottom-width: 2px;
   border-bottom-color: #D3D3D3;
@@ -1229,10 +1421,10 @@ gt_table
   display: inline-block;
   width: 100%;
 }
-&#10;#ujywndolco .gt_spanner_row {
+&#10;#urgvkanigd .gt_spanner_row {
   border-bottom-style: hidden;
 }
-&#10;#ujywndolco .gt_group_heading {
+&#10;#urgvkanigd .gt_group_heading {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -1257,7 +1449,7 @@ gt_table
   vertical-align: middle;
   text-align: left;
 }
-&#10;#ujywndolco .gt_empty_group_heading {
+&#10;#urgvkanigd .gt_empty_group_heading {
   padding: 0.5px;
   color: #333333;
   background-color: #FFFFFF;
@@ -1271,13 +1463,13 @@ gt_table
   border-bottom-color: #D3D3D3;
   vertical-align: middle;
 }
-&#10;#ujywndolco .gt_from_md > :first-child {
+&#10;#urgvkanigd .gt_from_md > :first-child {
   margin-top: 0;
 }
-&#10;#ujywndolco .gt_from_md > :last-child {
+&#10;#urgvkanigd .gt_from_md > :last-child {
   margin-bottom: 0;
 }
-&#10;#ujywndolco .gt_row {
+&#10;#urgvkanigd .gt_row {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -1295,7 +1487,7 @@ gt_table
   vertical-align: middle;
   overflow-x: hidden;
 }
-&#10;#ujywndolco .gt_stub {
+&#10;#urgvkanigd .gt_stub {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -1307,7 +1499,7 @@ gt_table
   padding-left: 5px;
   padding-right: 5px;
 }
-&#10;#ujywndolco .gt_stub_row_group {
+&#10;#urgvkanigd .gt_stub_row_group {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -1320,13 +1512,13 @@ gt_table
   padding-right: 5px;
   vertical-align: top;
 }
-&#10;#ujywndolco .gt_row_group_first td {
+&#10;#urgvkanigd .gt_row_group_first td {
   border-top-width: 2px;
 }
-&#10;#ujywndolco .gt_row_group_first th {
+&#10;#urgvkanigd .gt_row_group_first th {
   border-top-width: 2px;
 }
-&#10;#ujywndolco .gt_summary_row {
+&#10;#urgvkanigd .gt_summary_row {
   color: #333333;
   background-color: #FFFFFF;
   text-transform: inherit;
@@ -1335,14 +1527,14 @@ gt_table
   padding-left: 5px;
   padding-right: 5px;
 }
-&#10;#ujywndolco .gt_first_summary_row {
+&#10;#urgvkanigd .gt_first_summary_row {
   border-top-style: solid;
   border-top-color: #D3D3D3;
 }
-&#10;#ujywndolco .gt_first_summary_row.thick {
+&#10;#urgvkanigd .gt_first_summary_row.thick {
   border-top-width: 2px;
 }
-&#10;#ujywndolco .gt_last_summary_row {
+&#10;#urgvkanigd .gt_last_summary_row {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -1351,7 +1543,7 @@ gt_table
   border-bottom-width: 2px;
   border-bottom-color: #D3D3D3;
 }
-&#10;#ujywndolco .gt_grand_summary_row {
+&#10;#urgvkanigd .gt_grand_summary_row {
   color: #333333;
   background-color: #FFFFFF;
   text-transform: inherit;
@@ -1360,7 +1552,7 @@ gt_table
   padding-left: 5px;
   padding-right: 5px;
 }
-&#10;#ujywndolco .gt_first_grand_summary_row {
+&#10;#urgvkanigd .gt_first_grand_summary_row {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -1369,7 +1561,7 @@ gt_table
   border-top-width: 6px;
   border-top-color: #D3D3D3;
 }
-&#10;#ujywndolco .gt_last_grand_summary_row_top {
+&#10;#urgvkanigd .gt_last_grand_summary_row_top {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -1378,10 +1570,10 @@ gt_table
   border-bottom-width: 6px;
   border-bottom-color: #D3D3D3;
 }
-&#10;#ujywndolco .gt_striped {
+&#10;#urgvkanigd .gt_striped {
   background-color: rgba(128, 128, 128, 0.05);
 }
-&#10;#ujywndolco .gt_table_body {
+&#10;#urgvkanigd .gt_table_body {
   border-top-style: solid;
   border-top-width: 2px;
   border-top-color: #D3D3D3;
@@ -1389,7 +1581,7 @@ gt_table
   border-bottom-width: 2px;
   border-bottom-color: #D3D3D3;
 }
-&#10;#ujywndolco .gt_footnotes {
+&#10;#urgvkanigd .gt_footnotes {
   color: #333333;
   background-color: #FFFFFF;
   border-bottom-style: none;
@@ -1402,7 +1594,7 @@ gt_table
   border-right-width: 2px;
   border-right-color: #D3D3D3;
 }
-&#10;#ujywndolco .gt_footnote {
+&#10;#urgvkanigd .gt_footnote {
   margin: 0px;
   font-size: 90%;
   padding-top: 4px;
@@ -1410,7 +1602,7 @@ gt_table
   padding-left: 5px;
   padding-right: 5px;
 }
-&#10;#ujywndolco .gt_sourcenotes {
+&#10;#urgvkanigd .gt_sourcenotes {
   color: #333333;
   background-color: #FFFFFF;
   border-bottom-style: none;
@@ -1423,57 +1615,57 @@ gt_table
   border-right-width: 2px;
   border-right-color: #D3D3D3;
 }
-&#10;#ujywndolco .gt_sourcenote {
+&#10;#urgvkanigd .gt_sourcenote {
   font-size: 90%;
   padding-top: 4px;
   padding-bottom: 4px;
   padding-left: 5px;
   padding-right: 5px;
 }
-&#10;#ujywndolco .gt_left {
+&#10;#urgvkanigd .gt_left {
   text-align: left;
 }
-&#10;#ujywndolco .gt_center {
+&#10;#urgvkanigd .gt_center {
   text-align: center;
 }
-&#10;#ujywndolco .gt_right {
+&#10;#urgvkanigd .gt_right {
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
-&#10;#ujywndolco .gt_font_normal {
+&#10;#urgvkanigd .gt_font_normal {
   font-weight: normal;
 }
-&#10;#ujywndolco .gt_font_bold {
+&#10;#urgvkanigd .gt_font_bold {
   font-weight: bold;
 }
-&#10;#ujywndolco .gt_font_italic {
+&#10;#urgvkanigd .gt_font_italic {
   font-style: italic;
 }
-&#10;#ujywndolco .gt_super {
+&#10;#urgvkanigd .gt_super {
   font-size: 65%;
 }
-&#10;#ujywndolco .gt_footnote_marks {
+&#10;#urgvkanigd .gt_footnote_marks {
   font-size: 75%;
   vertical-align: 0.4em;
   position: initial;
 }
-&#10;#ujywndolco .gt_asterisk {
+&#10;#urgvkanigd .gt_asterisk {
   font-size: 100%;
   vertical-align: 0;
 }
-&#10;#ujywndolco .gt_indent_1 {
+&#10;#urgvkanigd .gt_indent_1 {
   text-indent: 5px;
 }
-&#10;#ujywndolco .gt_indent_2 {
+&#10;#urgvkanigd .gt_indent_2 {
   text-indent: 10px;
 }
-&#10;#ujywndolco .gt_indent_3 {
+&#10;#urgvkanigd .gt_indent_3 {
   text-indent: 15px;
 }
-&#10;#ujywndolco .gt_indent_4 {
+&#10;#urgvkanigd .gt_indent_4 {
   text-indent: 20px;
 }
-&#10;#ujywndolco .gt_indent_5 {
+&#10;#urgvkanigd .gt_indent_5 {
   text-indent: 25px;
 }
 </style>
@@ -1500,55 +1692,55 @@ gt_table
   </thead>
   <tbody class="gt_table_body">
     <tr><td headers="Health" class="gt_row gt_left">Lowest Rate</td>
-<td headers="Mental Illness" class="gt_row gt_left" style="background-color: #90EE90;">minnesota</td>
-<td headers="BingeDrinking" class="gt_row gt_left">west virginia</td>
-<td headers="ChildhoodAsthma" class="gt_row gt_left" style="background-color: #90EE90;">minnesota</td>
-<td headers="Arthritis" class="gt_row gt_left">DC</td>
-<td headers="Cancer" class="gt_row gt_left">new jersey</td>
-<td headers="KidneyDisease" class="gt_row gt_left" style="background-color: #90EE90;">vermont</td>
-<td headers="HighBloodPressure" class="gt_row gt_left" style="background-color: #90EE90;">vermont</td>
-<td headers="Diabetes" class="gt_row gt_left" style="background-color: #90EE90;">vermont</td>
-<td headers="COPD" class="gt_row gt_left" style="background-color: #ADD8E6;">utah</td></tr>
+<td headers="Mental Illness" class="gt_row gt_left">Hawaii</td>
+<td headers="BingeDrinking" class="gt_row gt_left">West Virginia</td>
+<td headers="ChildhoodAsthma" class="gt_row gt_left" style="background-color: #90EE90;">Minnesota</td>
+<td headers="Arthritis" class="gt_row gt_left">District Of C</td>
+<td headers="Cancer" class="gt_row gt_left">New Jersey</td>
+<td headers="KidneyDisease" class="gt_row gt_left" style="background-color: #90EE90;">Vermont</td>
+<td headers="HighBloodPressure" class="gt_row gt_left" style="background-color: #90EE90;">Vermont</td>
+<td headers="Diabetes" class="gt_row gt_left" style="background-color: #90EE90;">Vermont</td>
+<td headers="COPD" class="gt_row gt_left">Hawaii</td></tr>
     <tr><td headers="Health" class="gt_row gt_left">↓</td>
-<td headers="Mental Illness" class="gt_row gt_left">south dakota</td>
-<td headers="BingeDrinking" class="gt_row gt_left" style="background-color: #ADD8E6;">utah</td>
-<td headers="ChildhoodAsthma" class="gt_row gt_left">texas</td>
-<td headers="Arthritis" class="gt_row gt_left" style="background-color: #90EE90;">vermont</td>
-<td headers="Cancer" class="gt_row gt_left" style="background-color: #90EE90;">vermont</td>
-<td headers="KidneyDisease" class="gt_row gt_left">alaska</td>
-<td headers="HighBloodPressure" class="gt_row gt_left" style="background-color: #ADD8E6;">utah</td>
-<td headers="Diabetes" class="gt_row gt_left">montana</td>
-<td headers="COPD" class="gt_row gt_left" style="background-color: #90EE90;">minnesota</td></tr>
+<td headers="Mental Illness" class="gt_row gt_left" style="background-color: #90EE90;">Minnesota</td>
+<td headers="BingeDrinking" class="gt_row gt_left" style="background-color: #ADD8E6;">Utah</td>
+<td headers="ChildhoodAsthma" class="gt_row gt_left">Texas</td>
+<td headers="Arthritis" class="gt_row gt_left" style="background-color: #90EE90;">Vermont</td>
+<td headers="Cancer" class="gt_row gt_left" style="background-color: #90EE90;">Vermont</td>
+<td headers="KidneyDisease" class="gt_row gt_left">Alaska</td>
+<td headers="HighBloodPressure" class="gt_row gt_left" style="background-color: #ADD8E6;">Utah</td>
+<td headers="Diabetes" class="gt_row gt_left">Montana</td>
+<td headers="COPD" class="gt_row gt_left" style="background-color: #ADD8E6;">Utah</td></tr>
     <tr><td headers="Health" class="gt_row gt_left">↓</td>
-<td headers="Mental Illness" class="gt_row gt_left" style="background-color: #90EE90;">north dakota</td>
-<td headers="BingeDrinking" class="gt_row gt_left">alabama</td>
-<td headers="ChildhoodAsthma" class="gt_row gt_left" style="background-color: #90EE90;">north dakota</td>
-<td headers="Arthritis" class="gt_row gt_left" style="background-color: #90EE90;">minnesota</td>
-<td headers="Cancer" class="gt_row gt_left">DC</td>
-<td headers="KidneyDisease" class="gt_row gt_left" style="background-color: #90EE90;">north dakota</td>
-<td headers="HighBloodPressure" class="gt_row gt_left" style="background-color: #90EE90;">minnesota</td>
-<td headers="Diabetes" class="gt_row gt_left">colorado</td>
-<td headers="COPD" class="gt_row gt_left">alaska</td></tr>
+<td headers="Mental Illness" class="gt_row gt_left">South Dakota</td>
+<td headers="BingeDrinking" class="gt_row gt_left">Alabama</td>
+<td headers="ChildhoodAsthma" class="gt_row gt_left" style="background-color: #90EE90;">North Dakota</td>
+<td headers="Arthritis" class="gt_row gt_left" style="background-color: #90EE90;">Minnesota</td>
+<td headers="Cancer" class="gt_row gt_left">District Of C</td>
+<td headers="KidneyDisease" class="gt_row gt_left" style="background-color: #90EE90;">North Dakota</td>
+<td headers="HighBloodPressure" class="gt_row gt_left" style="background-color: #90EE90;">Minnesota</td>
+<td headers="Diabetes" class="gt_row gt_left">Colorado</td>
+<td headers="COPD" class="gt_row gt_left" style="background-color: #90EE90;">Minnesota</td></tr>
     <tr><td headers="Health" class="gt_row gt_left">↓</td>
-<td headers="Mental Illness" class="gt_row gt_left">alaska</td>
-<td headers="BingeDrinking" class="gt_row gt_left">mississippi</td>
-<td headers="ChildhoodAsthma" class="gt_row gt_left">south dakota</td>
-<td headers="Arthritis" class="gt_row gt_left" style="background-color: #ADD8E6;">utah</td>
-<td headers="Cancer" class="gt_row gt_left">texas</td>
-<td headers="KidneyDisease" class="gt_row gt_left" style="background-color: #ADD8E6;">utah</td>
-<td headers="HighBloodPressure" class="gt_row gt_left">colorado</td>
-<td headers="Diabetes" class="gt_row gt_left">maine</td>
-<td headers="COPD" class="gt_row gt_left" style="background-color: #90EE90;">north dakota</td></tr>
+<td headers="Mental Illness" class="gt_row gt_left" style="background-color: #90EE90;">North Dakota</td>
+<td headers="BingeDrinking" class="gt_row gt_left">Mississippi</td>
+<td headers="ChildhoodAsthma" class="gt_row gt_left">South Dakota</td>
+<td headers="Arthritis" class="gt_row gt_left">Hawaii</td>
+<td headers="Cancer" class="gt_row gt_left">Texas</td>
+<td headers="KidneyDisease" class="gt_row gt_left" style="background-color: #ADD8E6;">Utah</td>
+<td headers="HighBloodPressure" class="gt_row gt_left">Colorado</td>
+<td headers="Diabetes" class="gt_row gt_left">Maine</td>
+<td headers="COPD" class="gt_row gt_left">Alaska</td></tr>
     <tr><td headers="Health" class="gt_row gt_left">Fifth Lowest Rate</td>
-<td headers="Mental Illness" class="gt_row gt_left">wyoming</td>
-<td headers="BingeDrinking" class="gt_row gt_left">tennessee</td>
-<td headers="ChildhoodAsthma" class="gt_row gt_left">nebraska</td>
-<td headers="Arthritis" class="gt_row gt_left">california</td>
-<td headers="Cancer" class="gt_row gt_left" style="background-color: #ADD8E6;">utah</td>
-<td headers="KidneyDisease" class="gt_row gt_left">colorado</td>
-<td headers="HighBloodPressure" class="gt_row gt_left">montana</td>
-<td headers="Diabetes" class="gt_row gt_left" style="background-color: #90EE90;">north dakota</td>
-<td headers="COPD" class="gt_row gt_left">colorado</td></tr>
+<td headers="Mental Illness" class="gt_row gt_left">Alaska</td>
+<td headers="BingeDrinking" class="gt_row gt_left">Tennessee</td>
+<td headers="ChildhoodAsthma" class="gt_row gt_left">Nebraska</td>
+<td headers="Arthritis" class="gt_row gt_left" style="background-color: #ADD8E6;">Utah</td>
+<td headers="Cancer" class="gt_row gt_left" style="background-color: #ADD8E6;">Utah</td>
+<td headers="KidneyDisease" class="gt_row gt_left">Colorado</td>
+<td headers="HighBloodPressure" class="gt_row gt_left">Montana</td>
+<td headers="Diabetes" class="gt_row gt_left" style="background-color: #90EE90;">North Dakota</td>
+<td headers="COPD" class="gt_row gt_left" style="background-color: #90EE90;">North Dakota</td></tr>
   </tbody>
   <tfoot class="gt_sourcenotes">
     <tr>
@@ -1583,7 +1775,7 @@ ggplot(smallest_values, aes(x = Rank, y = value, color = Variable)) +
   scale_x_continuous(breaks = 1:5)
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-27-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-28-1.png)<!-- -->
 
 Find Least Healthy States
 
@@ -1717,20 +1909,20 @@ for (col_name in colnames(leastHealthy)) {
 gt_table
 ```
 
-<div id="zecrvivnof" style="padding-left:0px;padding-right:0px;padding-top:10px;padding-bottom:10px;overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
-<style>#zecrvivnof table {
+<div id="nkbgcsdfos" style="padding-left:0px;padding-right:0px;padding-top:10px;padding-bottom:10px;overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
+<style>#nkbgcsdfos table {
   font-family: system-ui, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
-&#10;#zecrvivnof thead, #zecrvivnof tbody, #zecrvivnof tfoot, #zecrvivnof tr, #zecrvivnof td, #zecrvivnof th {
+&#10;#nkbgcsdfos thead, #nkbgcsdfos tbody, #nkbgcsdfos tfoot, #nkbgcsdfos tr, #nkbgcsdfos td, #nkbgcsdfos th {
   border-style: none;
 }
-&#10;#zecrvivnof p {
+&#10;#nkbgcsdfos p {
   margin: 0;
   padding: 0;
 }
-&#10;#zecrvivnof .gt_table {
+&#10;#nkbgcsdfos .gt_table {
   display: table;
   border-collapse: collapse;
   line-height: normal;
@@ -1755,11 +1947,11 @@ gt_table
   border-left-width: 2px;
   border-left-color: #D3D3D3;
 }
-&#10;#zecrvivnof .gt_caption {
+&#10;#nkbgcsdfos .gt_caption {
   padding-top: 4px;
   padding-bottom: 4px;
 }
-&#10;#zecrvivnof .gt_title {
+&#10;#nkbgcsdfos .gt_title {
   color: #333333;
   font-size: 125%;
   font-weight: initial;
@@ -1770,7 +1962,7 @@ gt_table
   border-bottom-color: #FFFFFF;
   border-bottom-width: 0;
 }
-&#10;#zecrvivnof .gt_subtitle {
+&#10;#nkbgcsdfos .gt_subtitle {
   color: #333333;
   font-size: 85%;
   font-weight: initial;
@@ -1781,7 +1973,7 @@ gt_table
   border-top-color: #FFFFFF;
   border-top-width: 0;
 }
-&#10;#zecrvivnof .gt_heading {
+&#10;#nkbgcsdfos .gt_heading {
   background-color: #FFFFFF;
   text-align: center;
   border-bottom-color: #FFFFFF;
@@ -1792,12 +1984,12 @@ gt_table
   border-right-width: 1px;
   border-right-color: #D3D3D3;
 }
-&#10;#zecrvivnof .gt_bottom_border {
+&#10;#nkbgcsdfos .gt_bottom_border {
   border-bottom-style: solid;
   border-bottom-width: 2px;
   border-bottom-color: #D3D3D3;
 }
-&#10;#zecrvivnof .gt_col_headings {
+&#10;#nkbgcsdfos .gt_col_headings {
   border-top-style: solid;
   border-top-width: 2px;
   border-top-color: #D3D3D3;
@@ -1811,7 +2003,7 @@ gt_table
   border-right-width: 1px;
   border-right-color: #D3D3D3;
 }
-&#10;#zecrvivnof .gt_col_heading {
+&#10;#nkbgcsdfos .gt_col_heading {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -1830,7 +2022,7 @@ gt_table
   padding-right: 5px;
   overflow-x: hidden;
 }
-&#10;#zecrvivnof .gt_column_spanner_outer {
+&#10;#nkbgcsdfos .gt_column_spanner_outer {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -1841,13 +2033,13 @@ gt_table
   padding-left: 4px;
   padding-right: 4px;
 }
-&#10;#zecrvivnof .gt_column_spanner_outer:first-child {
+&#10;#nkbgcsdfos .gt_column_spanner_outer:first-child {
   padding-left: 0;
 }
-&#10;#zecrvivnof .gt_column_spanner_outer:last-child {
+&#10;#nkbgcsdfos .gt_column_spanner_outer:last-child {
   padding-right: 0;
 }
-&#10;#zecrvivnof .gt_column_spanner {
+&#10;#nkbgcsdfos .gt_column_spanner {
   border-bottom-style: solid;
   border-bottom-width: 2px;
   border-bottom-color: #D3D3D3;
@@ -1858,10 +2050,10 @@ gt_table
   display: inline-block;
   width: 100%;
 }
-&#10;#zecrvivnof .gt_spanner_row {
+&#10;#nkbgcsdfos .gt_spanner_row {
   border-bottom-style: hidden;
 }
-&#10;#zecrvivnof .gt_group_heading {
+&#10;#nkbgcsdfos .gt_group_heading {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -1886,7 +2078,7 @@ gt_table
   vertical-align: middle;
   text-align: left;
 }
-&#10;#zecrvivnof .gt_empty_group_heading {
+&#10;#nkbgcsdfos .gt_empty_group_heading {
   padding: 0.5px;
   color: #333333;
   background-color: #FFFFFF;
@@ -1900,13 +2092,13 @@ gt_table
   border-bottom-color: #D3D3D3;
   vertical-align: middle;
 }
-&#10;#zecrvivnof .gt_from_md > :first-child {
+&#10;#nkbgcsdfos .gt_from_md > :first-child {
   margin-top: 0;
 }
-&#10;#zecrvivnof .gt_from_md > :last-child {
+&#10;#nkbgcsdfos .gt_from_md > :last-child {
   margin-bottom: 0;
 }
-&#10;#zecrvivnof .gt_row {
+&#10;#nkbgcsdfos .gt_row {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -1924,7 +2116,7 @@ gt_table
   vertical-align: middle;
   overflow-x: hidden;
 }
-&#10;#zecrvivnof .gt_stub {
+&#10;#nkbgcsdfos .gt_stub {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -1936,7 +2128,7 @@ gt_table
   padding-left: 5px;
   padding-right: 5px;
 }
-&#10;#zecrvivnof .gt_stub_row_group {
+&#10;#nkbgcsdfos .gt_stub_row_group {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -1949,13 +2141,13 @@ gt_table
   padding-right: 5px;
   vertical-align: top;
 }
-&#10;#zecrvivnof .gt_row_group_first td {
+&#10;#nkbgcsdfos .gt_row_group_first td {
   border-top-width: 2px;
 }
-&#10;#zecrvivnof .gt_row_group_first th {
+&#10;#nkbgcsdfos .gt_row_group_first th {
   border-top-width: 2px;
 }
-&#10;#zecrvivnof .gt_summary_row {
+&#10;#nkbgcsdfos .gt_summary_row {
   color: #333333;
   background-color: #FFFFFF;
   text-transform: inherit;
@@ -1964,14 +2156,14 @@ gt_table
   padding-left: 5px;
   padding-right: 5px;
 }
-&#10;#zecrvivnof .gt_first_summary_row {
+&#10;#nkbgcsdfos .gt_first_summary_row {
   border-top-style: solid;
   border-top-color: #D3D3D3;
 }
-&#10;#zecrvivnof .gt_first_summary_row.thick {
+&#10;#nkbgcsdfos .gt_first_summary_row.thick {
   border-top-width: 2px;
 }
-&#10;#zecrvivnof .gt_last_summary_row {
+&#10;#nkbgcsdfos .gt_last_summary_row {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -1980,7 +2172,7 @@ gt_table
   border-bottom-width: 2px;
   border-bottom-color: #D3D3D3;
 }
-&#10;#zecrvivnof .gt_grand_summary_row {
+&#10;#nkbgcsdfos .gt_grand_summary_row {
   color: #333333;
   background-color: #FFFFFF;
   text-transform: inherit;
@@ -1989,7 +2181,7 @@ gt_table
   padding-left: 5px;
   padding-right: 5px;
 }
-&#10;#zecrvivnof .gt_first_grand_summary_row {
+&#10;#nkbgcsdfos .gt_first_grand_summary_row {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -1998,7 +2190,7 @@ gt_table
   border-top-width: 6px;
   border-top-color: #D3D3D3;
 }
-&#10;#zecrvivnof .gt_last_grand_summary_row_top {
+&#10;#nkbgcsdfos .gt_last_grand_summary_row_top {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -2007,10 +2199,10 @@ gt_table
   border-bottom-width: 6px;
   border-bottom-color: #D3D3D3;
 }
-&#10;#zecrvivnof .gt_striped {
+&#10;#nkbgcsdfos .gt_striped {
   background-color: rgba(128, 128, 128, 0.05);
 }
-&#10;#zecrvivnof .gt_table_body {
+&#10;#nkbgcsdfos .gt_table_body {
   border-top-style: solid;
   border-top-width: 2px;
   border-top-color: #D3D3D3;
@@ -2018,7 +2210,7 @@ gt_table
   border-bottom-width: 2px;
   border-bottom-color: #D3D3D3;
 }
-&#10;#zecrvivnof .gt_footnotes {
+&#10;#nkbgcsdfos .gt_footnotes {
   color: #333333;
   background-color: #FFFFFF;
   border-bottom-style: none;
@@ -2031,7 +2223,7 @@ gt_table
   border-right-width: 2px;
   border-right-color: #D3D3D3;
 }
-&#10;#zecrvivnof .gt_footnote {
+&#10;#nkbgcsdfos .gt_footnote {
   margin: 0px;
   font-size: 90%;
   padding-top: 4px;
@@ -2039,7 +2231,7 @@ gt_table
   padding-left: 5px;
   padding-right: 5px;
 }
-&#10;#zecrvivnof .gt_sourcenotes {
+&#10;#nkbgcsdfos .gt_sourcenotes {
   color: #333333;
   background-color: #FFFFFF;
   border-bottom-style: none;
@@ -2052,57 +2244,57 @@ gt_table
   border-right-width: 2px;
   border-right-color: #D3D3D3;
 }
-&#10;#zecrvivnof .gt_sourcenote {
+&#10;#nkbgcsdfos .gt_sourcenote {
   font-size: 90%;
   padding-top: 4px;
   padding-bottom: 4px;
   padding-left: 5px;
   padding-right: 5px;
 }
-&#10;#zecrvivnof .gt_left {
+&#10;#nkbgcsdfos .gt_left {
   text-align: left;
 }
-&#10;#zecrvivnof .gt_center {
+&#10;#nkbgcsdfos .gt_center {
   text-align: center;
 }
-&#10;#zecrvivnof .gt_right {
+&#10;#nkbgcsdfos .gt_right {
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
-&#10;#zecrvivnof .gt_font_normal {
+&#10;#nkbgcsdfos .gt_font_normal {
   font-weight: normal;
 }
-&#10;#zecrvivnof .gt_font_bold {
+&#10;#nkbgcsdfos .gt_font_bold {
   font-weight: bold;
 }
-&#10;#zecrvivnof .gt_font_italic {
+&#10;#nkbgcsdfos .gt_font_italic {
   font-style: italic;
 }
-&#10;#zecrvivnof .gt_super {
+&#10;#nkbgcsdfos .gt_super {
   font-size: 65%;
 }
-&#10;#zecrvivnof .gt_footnote_marks {
+&#10;#nkbgcsdfos .gt_footnote_marks {
   font-size: 75%;
   vertical-align: 0.4em;
   position: initial;
 }
-&#10;#zecrvivnof .gt_asterisk {
+&#10;#nkbgcsdfos .gt_asterisk {
   font-size: 100%;
   vertical-align: 0;
 }
-&#10;#zecrvivnof .gt_indent_1 {
+&#10;#nkbgcsdfos .gt_indent_1 {
   text-indent: 5px;
 }
-&#10;#zecrvivnof .gt_indent_2 {
+&#10;#nkbgcsdfos .gt_indent_2 {
   text-indent: 10px;
 }
-&#10;#zecrvivnof .gt_indent_3 {
+&#10;#nkbgcsdfos .gt_indent_3 {
   text-indent: 15px;
 }
-&#10;#zecrvivnof .gt_indent_4 {
+&#10;#nkbgcsdfos .gt_indent_4 {
   text-indent: 20px;
 }
-&#10;#zecrvivnof .gt_indent_5 {
+&#10;#nkbgcsdfos .gt_indent_5 {
   text-indent: 25px;
 }
 </style>
@@ -2129,55 +2321,55 @@ gt_table
   </thead>
   <tbody class="gt_table_body">
     <tr><td headers="Health" class="gt_row gt_left">Highest Rate</td>
-<td headers="Mental Illness" class="gt_row gt_left" style="background-color: #FFA500;">delaware</td>
-<td headers="BingeDrinking" class="gt_row gt_left">north dakota</td>
-<td headers="ChildhoodAsthma" class="gt_row gt_left" style="background-color: #FFA500;">delaware</td>
-<td headers="Arthritis" class="gt_row gt_left" style="background-color: #FFFF00; font-weight: bold;">west virginia</td>
-<td headers="Cancer" class="gt_row gt_left" style="background-color: #FFFF00; font-weight: bold;">west virginia</td>
-<td headers="KidneyDisease" class="gt_row gt_left" style="background-color: #FFA500;">ohio</td>
-<td headers="HighBloodPressure" class="gt_row gt_left" style="background-color: #FFFF00; font-weight: bold;">west virginia</td>
-<td headers="Diabetes" class="gt_row gt_left" style="background-color: #FFFF00; font-weight: bold;">west virginia</td>
-<td headers="COPD" class="gt_row gt_left" style="background-color: #FFFF00; font-weight: bold;">west virginia</td></tr>
+<td headers="Mental Illness" class="gt_row gt_left" style="background-color: #FFA500;">Delaware</td>
+<td headers="BingeDrinking" class="gt_row gt_left">North Dakota</td>
+<td headers="ChildhoodAsthma" class="gt_row gt_left" style="background-color: #FFA500;">Delaware</td>
+<td headers="Arthritis" class="gt_row gt_left" style="background-color: #FFFF00; font-weight: bold;">West Virginia</td>
+<td headers="Cancer" class="gt_row gt_left" style="background-color: #FFFF00; font-weight: bold;">West Virginia</td>
+<td headers="KidneyDisease" class="gt_row gt_left" style="background-color: #FFA500;">Ohio</td>
+<td headers="HighBloodPressure" class="gt_row gt_left" style="background-color: #FFFF00; font-weight: bold;">West Virginia</td>
+<td headers="Diabetes" class="gt_row gt_left" style="background-color: #FFFF00; font-weight: bold;">West Virginia</td>
+<td headers="COPD" class="gt_row gt_left" style="background-color: #FFFF00; font-weight: bold;">West Virginia</td></tr>
     <tr><td headers="Health" class="gt_row gt_left">↓</td>
-<td headers="Mental Illness" class="gt_row gt_left" style="background-color: #FFA500;">ohio</td>
-<td headers="BingeDrinking" class="gt_row gt_left">wisconsin</td>
-<td headers="ChildhoodAsthma" class="gt_row gt_left">rhode island</td>
-<td headers="Arthritis" class="gt_row gt_left" style="background-color: #FFA500;">ohio</td>
-<td headers="Cancer" class="gt_row gt_left">rhode island</td>
-<td headers="KidneyDisease" class="gt_row gt_left" style="background-color: #FFA500;">delaware</td>
-<td headers="HighBloodPressure" class="gt_row gt_left">mississippi</td>
-<td headers="Diabetes" class="gt_row gt_left" style="background-color: #FFA500;">ohio</td>
-<td headers="COPD" class="gt_row gt_left" style="background-color: #FFA500;">ohio</td></tr>
+<td headers="Mental Illness" class="gt_row gt_left" style="background-color: #FFA500;">Ohio</td>
+<td headers="BingeDrinking" class="gt_row gt_left">Wisconsin</td>
+<td headers="ChildhoodAsthma" class="gt_row gt_left">Rhode Island</td>
+<td headers="Arthritis" class="gt_row gt_left" style="background-color: #FFA500;">Ohio</td>
+<td headers="Cancer" class="gt_row gt_left">Rhode Island</td>
+<td headers="KidneyDisease" class="gt_row gt_left" style="background-color: #FFA500;">Delaware</td>
+<td headers="HighBloodPressure" class="gt_row gt_left">Mississippi</td>
+<td headers="Diabetes" class="gt_row gt_left" style="background-color: #FFA500;">Ohio</td>
+<td headers="COPD" class="gt_row gt_left" style="background-color: #FFA500;">Ohio</td></tr>
     <tr><td headers="Health" class="gt_row gt_left">↓</td>
-<td headers="Mental Illness" class="gt_row gt_left">pennsylvania</td>
-<td headers="BingeDrinking" class="gt_row gt_left">montana</td>
-<td headers="ChildhoodAsthma" class="gt_row gt_left">maryland</td>
-<td headers="Arthritis" class="gt_row gt_left">alabama</td>
-<td headers="Cancer" class="gt_row gt_left">montana</td>
-<td headers="KidneyDisease" class="gt_row gt_left">mississippi</td>
-<td headers="HighBloodPressure" class="gt_row gt_left">louisiana</td>
-<td headers="Diabetes" class="gt_row gt_left" style="background-color: #FFA500;">delaware</td>
-<td headers="COPD" class="gt_row gt_left">kentucky</td></tr>
+<td headers="Mental Illness" class="gt_row gt_left">Pennsylvania</td>
+<td headers="BingeDrinking" class="gt_row gt_left">Montana</td>
+<td headers="ChildhoodAsthma" class="gt_row gt_left">Maryland</td>
+<td headers="Arthritis" class="gt_row gt_left">Alabama</td>
+<td headers="Cancer" class="gt_row gt_left">Montana</td>
+<td headers="KidneyDisease" class="gt_row gt_left">Mississippi</td>
+<td headers="HighBloodPressure" class="gt_row gt_left">Louisiana</td>
+<td headers="Diabetes" class="gt_row gt_left" style="background-color: #FFA500;">Delaware</td>
+<td headers="COPD" class="gt_row gt_left">Kentucky</td></tr>
     <tr><td headers="Health" class="gt_row gt_left">↓</td>
-<td headers="Mental Illness" class="gt_row gt_left">louisiana</td>
-<td headers="BingeDrinking" class="gt_row gt_left">nebraska</td>
-<td headers="ChildhoodAsthma" class="gt_row gt_left" style="background-color: #FFFF00; font-weight: bold;">west virginia</td>
-<td headers="Arthritis" class="gt_row gt_left">michigan</td>
-<td headers="Cancer" class="gt_row gt_left">new hampshire</td>
-<td headers="KidneyDisease" class="gt_row gt_left">louisiana</td>
-<td headers="HighBloodPressure" class="gt_row gt_left" style="background-color: #FFA500;">delaware</td>
-<td headers="Diabetes" class="gt_row gt_left">mississippi</td>
-<td headers="COPD" class="gt_row gt_left">florida</td></tr>
+<td headers="Mental Illness" class="gt_row gt_left">Louisiana</td>
+<td headers="BingeDrinking" class="gt_row gt_left">Nebraska</td>
+<td headers="ChildhoodAsthma" class="gt_row gt_left" style="background-color: #FFFF00; font-weight: bold;">West Virginia</td>
+<td headers="Arthritis" class="gt_row gt_left">Michigan</td>
+<td headers="Cancer" class="gt_row gt_left">New Hampshire</td>
+<td headers="KidneyDisease" class="gt_row gt_left">Louisiana</td>
+<td headers="HighBloodPressure" class="gt_row gt_left" style="background-color: #FFA500;">Delaware</td>
+<td headers="Diabetes" class="gt_row gt_left">Mississippi</td>
+<td headers="COPD" class="gt_row gt_left">Florida</td></tr>
     <tr><td headers="Health" class="gt_row gt_left">Fifth Highest Rate</td>
-<td headers="Mental Illness" class="gt_row gt_left">new jersey</td>
-<td headers="BingeDrinking" class="gt_row gt_left">DC</td>
-<td headers="ChildhoodAsthma" class="gt_row gt_left">massachusetts</td>
-<td headers="Arthritis" class="gt_row gt_left">pennsylvania</td>
-<td headers="Cancer" class="gt_row gt_left">michigan</td>
-<td headers="KidneyDisease" class="gt_row gt_left">maryland</td>
-<td headers="HighBloodPressure" class="gt_row gt_left">alabama</td>
-<td headers="Diabetes" class="gt_row gt_left">new jersey</td>
-<td headers="COPD" class="gt_row gt_left">louisiana</td></tr>
+<td headers="Mental Illness" class="gt_row gt_left">New Jersey</td>
+<td headers="BingeDrinking" class="gt_row gt_left">District Of C</td>
+<td headers="ChildhoodAsthma" class="gt_row gt_left">Massachusetts</td>
+<td headers="Arthritis" class="gt_row gt_left">Pennsylvania</td>
+<td headers="Cancer" class="gt_row gt_left">Michigan</td>
+<td headers="KidneyDisease" class="gt_row gt_left">Maryland</td>
+<td headers="HighBloodPressure" class="gt_row gt_left">Alabama</td>
+<td headers="Diabetes" class="gt_row gt_left">New Jersey</td>
+<td headers="COPD" class="gt_row gt_left">Louisiana</td></tr>
   </tbody>
   <tfoot class="gt_sourcenotes">
     <tr>
@@ -2212,13 +2404,13 @@ ggplot(biggest_values, aes(x = Rank, y = value, color = Variable)) +
   scale_x_continuous(breaks = 1:5)
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-30-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-31-1.png)<!-- -->
 
 Create a new grouping and perform Kruskal-Wallis analysis
 
 ``` r
-group1_states <- c("alabama", "georgia", "louisiana")
-group2_states <- c("ohio", "west virginia", "pennsylvania")
+group1_states <- c("Alabama", "Georgia", "Louisiana")
+group2_states <- c("Ohio", "West Virginia", "Pennsylvania")
 
 
 state_means$Group <- ifelse(state_means$StateDesc %in% group1_states, "Group1",
@@ -2253,23 +2445,7 @@ results <- long_data %>%
 
 results <- results[-10, ]
 
-print(results)
-```
 
-    ## # A tibble: 9 × 2
-    ##   Illness            p_value
-    ##   <chr>                <dbl>
-    ## 1 avgArthritis       0.0109 
-    ## 2 avgBingeDrinking   0.154  
-    ## 3 avgCOPD            0.00586
-    ## 4 avgCancer          0.147  
-    ## 5 avgChildhoodAsthma 0.0939 
-    ## 6 avgDiabetes        0.00429
-    ## 7 avgHighBP          0.0138 
-    ## 8 avgKidneyDisease   0.00382
-    ## 9 avgMentalIllness   0.0102
-
-``` r
 ggplot(results, aes(x = Illness, y = p_value)) +
   geom_bar(stat = "identity", fill = "steelblue") +
   geom_hline(yintercept = 0.05, linetype = "dashed", color = "red") +
@@ -2282,4 +2458,4 @@ ggplot(results, aes(x = Illness, y = p_value)) +
   scale_y_continuous(expand = expansion(mult = c(0, 0.1)))
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-31-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-32-1.png)<!-- -->

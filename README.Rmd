@@ -51,69 +51,6 @@ library(rmapshaper)
 
 ``` {R}
 
-# DO NOT KEEP RELOADING THIS!!!!!
-
-# THE DATA CAN BE RETRIEVED FROM THE BOX FOLDER IT TAKES A LOT OF
-# COMPUTATIONAL POWER TO RUN THE FOLLOWING CODE CHUNK THANK YOU : )
-
-# Get 2019 ACS 5-Year population estimates for all US places
-# city_pop <- get_acs(
-#   geography = "place",
-#   variables = "B01003_001",  # Total population
-#   year = 2019,
-#   survey = "acs5",
-#   output = "wide",
-#   geometry = FALSE
-# )
-# 
-# # This converts the columns to a more readable format
-# top_cities <- city_pop %>%
-#   select(GEOID, NAME, B01003_001E) %>%  # GEOID is the FIPS code
-#   rename(
-#     fips = GEOID,
-#     city = NAME,
-#     population = B01003_001E
-#   ) %>%
-#   arrange(desc(population))
-
-# This ensures when we join our data the columns in health and top_cities have the same variable name
-# top_cities <- rename(top_cities, CityFIPS = fips)
-# 
-# # This casts top_cities as numeric so that it can be joined with the numeric CityFIPS column in health
-# top_cities$CityFIPS <- as.numeric(top_cities$CityFIPS)
-# 
-# healthwfips$CityFIPS <- as.numeric(healthwfips$CityFIPS)
-# 
-# 
-# top_cities <- top_cities %>%
-#   mutate(CityFIPS = ifelse(CityFIPS == 1571550, 15003, CityFIPS))
-
-# This is a slightly destructive join
-# It removes two cities from our original dataset because their FIPS are not in the ACS dataset
-# The fact that they are not in the ACS dataset means we probably don't care about them
-# And 498 cities is an acceptable number of datapoints for the scope of this project
-# healthwfips <- inner_join(health, top_cities, by = "CityFIPS")
-
-# install.packages("writexl")
-
-# library(writexl)
-# 
-# write_xlsx(healthwfips, 'C:\\Users\\songb\\Desktop\\healthwfips.xlsx')
-# write_xlsx(map_data_combined, 'C:\\Users\\songb\\Desktop\\map_data_combined.xlsx')
-# write_xlsx(healthwfips, 'C:\\Users\\songb\\Desktop\\healthwfips.xlsx')
-
-# The questions we want to consider are as such:
-# Consider the variables: - mental illness - binge drinking - asthma -
-# arthritis - cancer - kidney disease - high blood pressure - diabetes -
-# COPD
-
-# Group By State
-
-# The population represented here is the sum of the considered cities
-# It represents a SAMPLE SIZE and is NOT IS NOT representative of the total population of those states
-state_means <- healthwfips %>% group_by(StateDesc) %>%
-  summarise(avgMentalIllness = mean(MHLTH), avgBingeDrinking = mean(BINGE), avgChildhoodAsthma = mean(CASTHMA), avgArthritis = mean(ARTHRITIS), avgCancer = mean(CANCER), avgKidneyDisease = mean(KIDNEY), avgHighBP = mean(BPHIGH), avgDiabetes = mean(DIABETES), avgCOPD = mean(COPD), statePopulation = sum(population))
-
 state_means <- healthwfips %>%
   group_by(StateDesc) %>%
   summarise(
@@ -132,19 +69,14 @@ state_means <- healthwfips %>%
 state_means <- state_means %>%
   mutate(StateDesc = tolower(StateDesc))
 
-state_means$StateDesc[state_means$StateDesc == "south carolin"] <- "south carolina"
-state_means$StateDesc[state_means$StateDesc == "north carolin"] <- "north carolina"
+state_means <- healthwfips %>% group_by(StateDesc) %>%
+  summarise(avgMentalIllness = mean(MHLTH), avgBingeDrinking = mean(BINGE), avgChildhoodAsthma = mean(CASTHMA), avgArthritis = mean(ARTHRITIS), avgCancer = mean(CANCER), avgKidneyDisease = mean(KIDNEY), avgHighBP = mean(BPHIGH), avgDiabetes = mean(DIABETES), avgCOPD = mean(COPD))
 
-# write_xlsx(state_means, 'C:\\Users\\songb\\Desktop\\statemeans.xlsx')
 
-# ```{R}
-# 
-# install.packages("tigris")
-# install.packages("sf")
-# install.packages("ggplot2")
-# install.packages("dplyr")
-# 
-# ```
+
+
+state_means$StateDesc[state_means$StateDesc == "South Carolin"] <- "South Carolina"
+state_means$StateDesc[state_means$StateDesc == "North Carolin"] <- "North Carolina"
 
 ```
 
@@ -1443,8 +1375,8 @@ Create a new grouping and perform Kruskal-Wallis analysis
 ```{R}
 
 
-group1_states <- c("alabama", "georgia", "louisiana")
-group2_states <- c("ohio", "west virginia", "pennsylvania")
+group1_states <- c("Alabama", "Georgia", "Louisiana")
+group2_states <- c("Ohio", "West Virginia", "Pennsylvania")
 
 
 state_means$Group <- ifelse(state_means$StateDesc %in% group1_states, "Group1",
@@ -1463,9 +1395,6 @@ results <- long_data %>%
   summarise(p_value = kruskal.test(Rate ~ Group)$p.value)
 
 results <- results[-10, ]
-
-print(results)
-
 
 
 ggplot(results, aes(x = Illness, y = p_value)) +
