@@ -22,6 +22,10 @@ Data Creation.Rmd
 ```{r}
 health <- read.csv("https://docs.google.com/spreadsheets/d/e/2PACX-1vQeaKrReyifqjPVoWB2pYHAo54wLlybjEnMZiPP0i6tdpWb-RLqmwrCvhz8HVOBLCjEo_0qYmrnOkEo/pub?output=csv")
 
+
+healthwfips <-read.csv("https://docs.google.com/spreadsheets/d/e/2PACX-1vTZ4PRD5X0Zcr1rEWwCTusXmef1IkAFgnpPXeJ1dZ3lVpp7iX-ZsbMFCOpkzS-zSA/pub?output=csv")
+
+
 ```
 
 ```{R}
@@ -45,82 +49,93 @@ library(rmapshaper)
 
 
 
-``` {html}
+``` {R}
 
-<!-- # DO NOT KEEP RELOADING THIS!!!!! -->
+# DO NOT KEEP RELOADING THIS!!!!!
 
-<!-- THE DATA CAN BE RETRIEVED FROM THE BOX FOLDER IT TAKES A LOT OF -->
-<!-- COMPUTATIONAL POWER TO RUN THE FOLLOWING CODE CHUNK THANK YOU : ) -->
+# THE DATA CAN BE RETRIEVED FROM THE BOX FOLDER IT TAKES A LOT OF
+# COMPUTATIONAL POWER TO RUN THE FOLLOWING CODE CHUNK THANK YOU : )
 
+# Get 2019 ACS 5-Year population estimates for all US places
+# city_pop <- get_acs(
+#   geography = "place",
+#   variables = "B01003_001",  # Total population
+#   year = 2019,
+#   survey = "acs5",
+#   output = "wide",
+#   geometry = FALSE
+# )
+# 
+# # This converts the columns to a more readable format
+# top_cities <- city_pop %>%
+#   select(GEOID, NAME, B01003_001E) %>%  # GEOID is the FIPS code
+#   rename(
+#     fips = GEOID,
+#     city = NAME,
+#     population = B01003_001E
+#   ) %>%
+#   arrange(desc(population))
 
+# This ensures when we join our data the columns in health and top_cities have the same variable name
+# top_cities <- rename(top_cities, CityFIPS = fips)
+# 
+# # This casts top_cities as numeric so that it can be joined with the numeric CityFIPS column in health
+# top_cities$CityFIPS <- as.numeric(top_cities$CityFIPS)
+# 
+# healthwfips$CityFIPS <- as.numeric(healthwfips$CityFIPS)
+# 
+# 
+# top_cities <- top_cities %>%
+#   mutate(CityFIPS = ifelse(CityFIPS == 1571550, 15003, CityFIPS))
 
-<!-- # Get 2019 ACS 5-Year population estimates for all US places -->
-<!-- city_pop <- get_acs( -->
-<!--   geography = "place", -->
-<!--   variables = "B01003_001",  # Total population -->
-<!--   year = 2019, -->
-<!--   survey = "acs5", -->
-<!--   output = "wide", -->
-<!--   geometry = FALSE -->
-<!-- ) -->
+# This is a slightly destructive join
+# It removes two cities from our original dataset because their FIPS are not in the ACS dataset
+# The fact that they are not in the ACS dataset means we probably don't care about them
+# And 498 cities is an acceptable number of datapoints for the scope of this project
+# healthwfips <- inner_join(health, top_cities, by = "CityFIPS")
 
-<!-- # This converts the columns to a more readable format -->
-<!-- top_cities <- city_pop %>% -->
-<!--   select(GEOID, NAME, B01003_001E) %>%  # GEOID is the FIPS code -->
-<!--   rename( -->
-<!--     fips = GEOID, -->
-<!--     city = NAME, -->
-<!--     population = B01003_001E -->
-<!--   ) %>% -->
-<!--   arrange(desc(population)) -->
+# install.packages("writexl")
 
+# library(writexl)
+# 
+# write_xlsx(healthwfips, 'C:\\Users\\songb\\Desktop\\healthwfips.xlsx')
+# write_xlsx(map_data_combined, 'C:\\Users\\songb\\Desktop\\map_data_combined.xlsx')
+# write_xlsx(healthwfips, 'C:\\Users\\songb\\Desktop\\healthwfips.xlsx')
 
+# The questions we want to consider are as such:
+# Consider the variables: - mental illness - binge drinking - asthma -
+# arthritis - cancer - kidney disease - high blood pressure - diabetes -
+# COPD
 
+# Group By State
 
-<!-- # This ensures when we join our data the columns in health and top_cities have the same variable name -->
-<!-- top_cities <- rename(top_cities, CityFIPS = fips) -->
+# The population represented here is the sum of the considered cities
+# It represents a SAMPLE SIZE and is NOT IS NOT representative of the total population of those states
+state_means <- healthwfips %>% group_by(StateDesc) %>%
+  summarise(avgMentalIllness = mean(MHLTH), avgBingeDrinking = mean(BINGE), avgChildhoodAsthma = mean(CASTHMA), avgArthritis = mean(ARTHRITIS), avgCancer = mean(CANCER), avgKidneyDisease = mean(KIDNEY), avgHighBP = mean(BPHIGH), avgDiabetes = mean(DIABETES), avgCOPD = mean(COPD), statePopulation = sum(population))
 
-<!-- #This casts top_cities as numeric so that it can be joined with the numeric CityFIPS column in health -->
-<!-- top_cities$CityFIPS <- as.numeric(top_cities$CityFIPS) -->
+state_means <- healthwfips %>%
+  group_by(StateDesc) %>%
+  summarise(
+    avgMentalIllness = mean(MHLTH, na.rm = TRUE),
+    avgBingeDrinking = mean(BINGE, na.rm = TRUE),
+    avgChildhoodAsthma = mean(CASTHMA, na.rm = TRUE),
+    avgArthritis = mean(ARTHRITIS, na.rm = TRUE),
+    avgCancer = mean(CANCER, na.rm = TRUE),
+    avgKidneyDisease = mean(KIDNEY, na.rm = TRUE),
+    avgHighBP = mean(BPHIGH, na.rm = TRUE),
+    avgDiabetes = mean(DIABETES, na.rm = TRUE),
+    avgCOPD = mean(COPD, na.rm = TRUE),
+    .groups = "drop"
+  )
 
-<!-- # This is a slightly destructive join -->
-<!-- # It removes two cities from our original dataset because their FIPS are not in the ACS dataset -->
-<!-- # The fact that they are not in the ACS dataset means we probably don't care about them -->
-<!-- # And 498 cities is an acceptable number of datapoints for the scope of this project -->
-<!-- healthwfips <- inner_join(health, top_cities, by = "CityFIPS") -->
+state_means <- state_means %>%
+  mutate(StateDesc = tolower(StateDesc))
 
+state_means$StateDesc[state_means$StateDesc == "south carolin"] <- "south carolina"
+state_means$StateDesc[state_means$StateDesc == "north carolin"] <- "north carolina"
 
-
-<!--  install.packages("writexl") -->
-
-<!--  library(writexl) -->
-
-<!--  write_xlsx(healthwfips, 'C:\\Users\\songb\\Desktop\\healthwfips.xlsx') -->
-<!--  write_xlsx(map_data_combined, 'C:\\Users\\songb\\Desktop\\map_data_combined.xlsx') -->
-<!--  write_xlsx(healthwfips, 'C:\\Users\\songb\\Desktop\\healthwfips.xlsx') -->
-<!-- ``` -->
-
-<!-- The questions we want to consider are as such: -->
-
-<!-- Consider the variables: - mental illness - binge drinking - asthma - -->
-<!-- arthritis - cancer - kidney disease - high blood pressure - diabetes - -->
-<!-- COPD -->
-
-<!-- Group By State -->
-
-
-<!-- # The population represented here is the sum of the considered cities -->
-<!-- # It represents a SAMPLE SIZE and is NOT IS NOT representative of the total population of those states -->
-<!-- state_means <- healthwfips %>% group_by(StateDesc) %>% -->
-<!--   summarise(avgMentalIllness = mean(MHLTH), avgBingeDrinking = mean(BINGE), avgChildhoodAsthma = mean(CASTHMA), avgArthritis = mean(ARTHRITIS), avgCancer = mean(CANCER), avgKidneyDisease = mean(KIDNEY), avgHighBP = mean(BPHIGH), avgDiabetes = mean(DIABETES), avgCOPD = mean(COPD), statePopulation = sum(population)) -->
-
-<!-- state_means <- state_means %>% -->
-<!--   mutate(StateDesc = tolower(StateDesc)) -->
-
-<!-- state_means$StateDesc[state_means$StateDesc == "south carolin"] <- "south carolina" -->
-<!-- state_means$StateDesc[state_means$StateDesc == "north carolin"] <- "north carolina" -->
-
-
+# write_xlsx(state_means, 'C:\\Users\\songb\\Desktop\\statemeans.xlsx')
 
 # ```{R}
 # 
@@ -143,7 +158,7 @@ Prepare the data to map by state
 #library(maps)      # for map_data
 #library(viridis)   # optional: better color scale
 
-state_means <- read.csv("https://docs.google.com/spreadsheets/d/e/2PACX-1vRPtd9hIIamvljlqlmKcpm8xzcoSxkiNT4bLA78cgczFQqrSjI1DRrKnNiKR5Ger9CZHL8AEd0bx7OW/pub?output=csv")
+# state_means <- read.csv("https://docs.google.com/spreadsheets/d/e/2PACX-1vRPtd9hIIamvljlqlmKcpm8xzcoSxkiNT4bLA78cgczFQqrSjI1DRrKnNiKR5Ger9CZHL8AEd0bx7OW/pub?output=csv")
 
 state_means$StateDesc <- str_to_title(state_means$StateDesc)
 
@@ -191,9 +206,8 @@ map_data_combined <- left_join(us_states_sf, state_means, by = c("NAME" = "State
  
  
 # write_xlsx(state_means, 'C:\\Users\\songb\\Desktop\\state_means.xlsx')
-```
 
-```{R}
+
 
 # state_means[state_means == 'district of c'] <- 'DC'
 
@@ -207,85 +221,6 @@ Now we make the maps and box plots
 Mental Illness Map
 ```{R}
 
-
-#st_bbox(map_data_clipped)
-
-
-# Merge data
-# my_data <- state_means %>%
-#   mutate(state = tolower(StateDesc)) %>%
-#   mutate(state_abbr = recode(state, !!!state_abbreviations))
-
-#us_states_cleaned <- rmapshaper::ms_filter_islands(us_states_sf, min_area = 5e9)
-
-# Shift AK and HI
-
-
-# bbox <- st_bbox(c(
-#   xmin = -130, xmax = -60,
-#   ymin = 20, ymax = 55
-# ), crs = st_crs(us_states_shifted)) %>%
-#   st_as_sfc()
-# 
-# 
-# 
-# 
-# 
-# bbox <- st_bbox(c(
-#   xmin = -180, xmax = -60,  # longitude range: includes shifted AK/HI
-#   ymin = 20, ymax = 55      # latitude range: enough for whole US
-# ), crs = st_crs(map_data_shifted))
-# 
-# # Crop the spatial data
-# map_data_clipped <- st_crop(map_data_shifted, bbox)
-# 
-# 
-# 
-# 
-# 
-# 
-# # 
-# # bbox <- st_sfc(st_polygon(list(cbind(
-# #   c(-125, -66, -66, -125, -125),  # Longitude
-# #   c(24, 24, 50, 50, 24)           # Latitude
-# # ))), crs = 4326)
-# 
-# # Perform the intersection to crop the data
-# # map_data_mainland <- st_intersection(us_states_sf, bbox)
-# 
-# # Check the result
-# # print(map_data_mainland)
-# 
-# 
-# 
-# bbox <- st_transform(bbox, crs = st_crs(us_states_sf))
-# 
-# # Now you can safely run spatial operations
-# map_data_mainland <- st_intersection(us_states_sf, bbox)
-
-# 
-# 
-# us_states_shifted <- shift_geometry(
-#   us_states_sf,
-#   geoid_column = NULL,
-#   preserve_area = FALSE,
-#   position = c("below", "outside")
-# )
-# 
-# # Join data
-# map_data_shifted <- us_states_shifted %>%
-#   left_join(state_means, by = c("NAME" = "StateDesc"))
-# 
-# # map_data_shifted <- st_crop(map_data_shifted, xmin = -180, xmax = -180, ymin = -180, ymax = 180)
-# 
-# 
-# 
-# 
-
-
-
-
-
 # Plot full map with AK/HI shifted
 formatting <- tigris::states() %>%
   dplyr::filter(GEOID < "60") %>%
@@ -298,7 +233,7 @@ formatting <- formatting %>%
 
 
 ggplot(formatting) +
-  geom_sf(aes(fill = avgArthritis)) +
+  geom_sf(aes(fill = avgMentalIllness)) +
   scale_fill_viridis_c(
       option = "plasma",
       direction = -1,
@@ -510,9 +445,8 @@ ggplot() +
 
 Binge Drinking Map
 ```{R}
-ggplot(map_data_combined, aes(x = long, y = lat, group = group, fill = avgBingeDrinking)) +
-  geom_polygon(color = "white", size = 0.3) +
-  coord_fixed(1.3) +
+ggplot(formatting) +
+  geom_sf(aes(fill = avgBingeDrinking))+
   scale_fill_viridis_c(
     option = "plasma",
     direction = -1,
@@ -594,9 +528,8 @@ ggplot() +
 Asthma Map
 
 ```{R}
-ggplot(map_data_combined, aes(x = long, y = lat, group = group, fill = avgChildhoodAsthma)) +
-  geom_polygon(color = "white", size = 0.3) +
-  coord_fixed(1.3) +
+ggplot(formatting) +
+  geom_sf(aes(fill = avgChildhoodAsthma)) +
   scale_fill_viridis_c(
     option = "plasma",
     direction = -1,
@@ -676,9 +609,8 @@ ggplot() +
 
 Arthritis Map
 ```{R}
-ggplot(map_data_combined, aes(x = long, y = lat, group = group, fill = avgArthritis)) +
-  geom_polygon(color = "white", size = 0.3) +
-  coord_fixed(1.3) +
+ggplot(formatting) +
+  geom_sf(aes(fill = avgArthritis)) +
   scale_fill_viridis_c(
     option = "plasma",
     direction = -1,
@@ -758,9 +690,8 @@ ggplot() +
 
 Kidney Disease Map
 ```{R}
-ggplot(map_data_combined, aes(x = long, y = lat, group = group, fill = avgKidneyDisease)) +
-  geom_polygon(color = "white", size = 0.3) +
-  coord_fixed(1.3) +
+ggplot(formatting) +
+  geom_sf(aes(fill = avgKidneyDisease)) +
   scale_fill_viridis_c(
     option = "plasma",
     direction = -1,
@@ -839,9 +770,8 @@ ggplot() +
 
 High Blood Pressure Map
 ```{R}
-ggplot(map_data_combined, aes(x = long, y = lat, group = group, fill = avgHighBP)) +
-  geom_polygon(color = "white", size = 0.3) +
-  coord_fixed(1.3) +
+ggplot(formatting) +
+  geom_sf(aes(fill = avgHighBP)) +
   scale_fill_viridis_c(
     option = "plasma",
     direction = -1,
@@ -920,9 +850,8 @@ ggplot() +
 
 Cancer Map
 ```{R}
-ggplot(map_data_combined, aes(x = long, y = lat, group = group, fill = avgCancer)) +
-  geom_polygon(color = "white", size = 0.3) +
-  coord_fixed(1.3) +
+ggplot(formatting) +
+  geom_sf(aes(fill = avgCancer)) +
   scale_fill_viridis_c(
     option = "plasma",
     direction = -1,
@@ -1002,9 +931,8 @@ ggplot() +
 Diabetes Map
 ```{R}
 
-ggplot(map_data_combined, aes(x = long, y = lat, group = group, fill = avgDiabetes)) +
-  geom_polygon(color = "white", size = 0.3) +
-  coord_fixed(1.3) +
+ggplot(formatting) +
+  geom_sf(aes(fill = avgDiabetes)) +
   scale_fill_viridis_c(
     option = "plasma",
     direction = -1,
@@ -1083,9 +1011,8 @@ ggplot() +
 
 COPD Map
 ```{R}
-ggplot(map_data_combined, aes(x = long, y = lat, group = group, fill = avgCOPD)) +
-  geom_polygon(color = "white", size = 0.3) +
-  coord_fixed(1.3) +
+ggplot(formatting) +
+  geom_sf(aes(fill = avgCOPD)) +
   scale_fill_viridis_c(
     option = "plasma",
     direction = -1,
