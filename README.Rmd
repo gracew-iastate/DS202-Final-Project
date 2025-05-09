@@ -1,6 +1,6 @@
 ---
 title: "README"
-author: "Naomi"
+author: "Naomi Mauss and Grace Wu"
 date: "2025-04-16"
 output: github_document
 format:
@@ -1283,14 +1283,14 @@ leastHealthy <- leastHealthy %>%
 
 # ```{R}
 # library(gt)
-# 
+#
 # value_counts <- leastHealthy %>%
 #   pivot_longer(everything()) %>%
 #   count(value, name = "freq")
-# 
+#
 # # Step 2: Create a lookup table for frequency
 # freq_lookup <- setNames(value_counts$freq, value_counts$value)
-# 
+#
 # gt_table <- leastHealthy %>%
 #   gt() %>%
 #   tab_header(
@@ -1309,12 +1309,12 @@ leastHealthy <- leastHealthy %>%
 #     style = cell_text(weight = "bold"),
 #     locations = cells_column_labels(columns = everything())
 #   )
-# 
+#
 # for (col_name in colnames(leastHealthy)) {
 #   for (row_index in seq_len(nrow(leastHealthy))) {
 #     cell_value <- leastHealthy[[col_name]][row_index]
 #     freq <- freq_lookup[[cell_value]]
-# 
+#
 #     if (freq == 5) {
 #       gt_table <- gt_table %>%
 #         tab_style(
@@ -1332,9 +1332,9 @@ leastHealthy <- leastHealthy %>%
 #     }
 #   }
 # }
-# 
+#
 # gt_table
-# 
+#
 # ```
 
 
@@ -1552,8 +1552,43 @@ ggplot(results, aes(x = Illness, y = p_value)) +
   scale_y_continuous(expand = expansion(mult = c(0, 0.1)))
 
 ```
+
 ```{R}
 group1_states <- c("West Virginia")
+
+
+state_means$Group <- ifelse(state_means$StateDesc %in% group1_states, "Group1","Group2")
+
+group_averages <- state_means %>%
+  group_by(Group) %>%
+  summarise(across(-StateDesc, mean, na.rm = TRUE))
+
+long_data <- state_means %>%
+  pivot_longer(cols = -c(StateDesc, Group), names_to = "Illness", values_to = "Rate")
+
+
+results <- long_data %>%
+  group_by(Illness) %>%
+  summarise(p_value = kruskal.test(Rate ~ Group)$p.value)
+
+results <- results[-10, ]
+
+
+ggplot(results, aes(x = Illness, y = p_value)) +
+  geom_bar(stat = "identity", fill = "steelblue") +
+  geom_hline(yintercept = 0.05, linetype = "dashed", color = "red") +
+  labs(title = "Kruskal-Wallis p-values by Illness",
+       x = "Illness",
+       y = "p-value") +
+  geom_text(aes(label = sprintf("%.4f", p_value)), vjust = -0.5) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  scale_y_continuous(expand = expansion(mult = c(0, 0.1)))
+
+```
+
+```{R}
+group1_states <- c("Pennsylvania")
 
 
 state_means$Group <- ifelse(state_means$StateDesc %in% group1_states, "Group1","Group2")
