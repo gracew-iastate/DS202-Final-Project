@@ -223,7 +223,7 @@ ggplot() +
        x = "State (ordered by median mental illness)",
        y = "Mental Illness Rate (%)") +
   theme_minimal() +
-  theme(axis.text.x = element_text(angle = 55, hjust = 1)) +
+ theme(axis.text.x = element_text(angle = 70, hjust = 1, size = 11)) +
   scale_x_discrete(limits = levels(health$StateDesc), labels = function(x) ifelse(x %in% highlight_states, x, ""))
 
 ```
@@ -304,7 +304,7 @@ ggplot() +
        x = "State (ordered by median binge drinking)",
        y = "Binge Drinking Rate (%)") +
   theme_minimal() +
-  theme(axis.text.x = element_text(angle = 55, hjust = 1)) +
+  theme(axis.text.x = element_text(angle = 70, hjust = 1, size = 11)) +
   scale_x_discrete(limits = levels(health$StateDesc), labels = function(x) ifelse(x %in% highlight_states, x, ""))
 
 ```
@@ -387,7 +387,7 @@ ggplot() +
        x = "State (ordered by median childhood asthma)",
        y = "Childhood Asthma Rate (%)") +
   theme_minimal() +
-  theme(axis.text.x = element_text(angle = 55, hjust = 1)) +
+ theme(axis.text.x = element_text(angle = 70, hjust = 1, size = 12)) +
   scale_x_discrete(limits = levels(health$StateDesc), labels = function(x) ifelse(x %in% highlight_states, x, ""))
 
 ```
@@ -468,7 +468,7 @@ ggplot() +
        x = "State (ordered by median arthritis)",
        y = "Childhood Arthritis Rate (%)") +
   theme_minimal() +
-  theme(axis.text.x = element_text(angle = 55, hjust = 1)) +
+ theme(axis.text.x = element_text(angle = 70, hjust = 1, size = 12)) +
   scale_x_discrete(limits = levels(health$StateDesc), labels = function(x) ifelse(x %in% highlight_states, x, ""))
 
 ```
@@ -549,7 +549,7 @@ ggplot() +
        x = "State (ordered by median kidney disease)",
        y = "Kidney Disease Rate (%)") +
   theme_minimal() +
-  theme(axis.text.x = element_text(angle = 55, hjust = 1)) +
+ theme(axis.text.x = element_text(angle = 70, hjust = 1, size = 12)) +
   scale_x_discrete(limits = levels(health$StateDesc), labels = function(x) ifelse(x %in% highlight_states, x, ""))
 
 ```
@@ -629,7 +629,7 @@ ggplot() +
        x = "State (ordered by median high blood pressure)",
        y = "High Blood Pressure Rate (%)") +
   theme_minimal() +
-  theme(axis.text.x = element_text(angle = 55, hjust = 1)) +
+ theme(axis.text.x = element_text(angle = 70, hjust = 1, size = 12)) +
   scale_x_discrete(limits = levels(health$StateDesc), labels = function(x) ifelse(x %in% highlight_states, x, ""))
 
 ```
@@ -709,7 +709,7 @@ ggplot() +
        x = "State (ordered by median cancer)",
        y = "Cancer Rate (%)") +
   theme_minimal() +
-  theme(axis.text.x = element_text(angle = 55, hjust = 1)) +
+ theme(axis.text.x = element_text(angle = 70, hjust = 1, size = 12)) +
   scale_x_discrete(limits = levels(health$StateDesc), labels = function(x) ifelse(x %in% highlight_states, x, ""))
 
 ```
@@ -790,7 +790,7 @@ ggplot() +
        x = "State (ordered by median diabetes)",
        y = "Diabetes Rate (%)") +
   theme_minimal() +
-  theme(axis.text.x = element_text(angle = 55, hjust = 1)) +
+ theme(axis.text.x = element_text(angle = 70, hjust = 1, size = 12)) +
   scale_x_discrete(limits = levels(health$StateDesc), labels = function(x) ifelse(x %in% highlight_states, x, ""))
 
 ```
@@ -872,7 +872,7 @@ ggplot() +
        x = "State (ordered by median COPD)",
        y = "COPD Rate (%)") +
   theme_minimal() +
-  theme(axis.text.x = element_text(angle = 55, hjust = 1)) +
+ theme(axis.text.x = element_text(angle = 70, hjust = 1, size = 12)) +
   scale_x_discrete(limits = levels(health$StateDesc), labels = function(x) ifelse(x %in% highlight_states, x, ""))  # Reverses the order on the x-axis
 
 ```
@@ -1075,7 +1075,47 @@ leastHealthy <- leastHealthy %>%
   select(Health, everything())
 
 
+
+
+
+
+least_long <- leastHealthy %>%
+  select(-1) %>%
+  pivot_longer(cols = everything(), values_to = "state") %>%
+  count(state) %>%
+  mutate(type = "Least Healthy")
+
+most_long <- healthiest %>%
+  select(-1) %>%
+  pivot_longer(cols = everything(), values_to = "state") %>%
+  count(state) %>%
+  mutate(type = "Most Healthy")
+
+# Step 2: Combine both
+combined_counts <- bind_rows(least_long, most_long)
+
+combined_counts <- combined_counts %>% filter(n > 2)
+
+# Step 3: Plot
+ggplot(combined_counts, aes(x = reorder(state, n), y = n, fill = type)) +
+  geom_bar(stat = "identity") +
+  scale_fill_manual(values = c("Least Healthy" = "orange", "Most Healthy" = "green")) +
+  labs(
+    title = "Frequency of States in Least/Most Healthy Rankings",
+    x = "State",
+    y = "Frequency",
+    fill = "Health Category"
+  ) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+
+
 ```
+
+
+
+
+
 
 
 Make a chart
@@ -1139,7 +1179,7 @@ results <- results[-10, ]
 ggplot(results, aes(x = Illness, y = p_value)) +
   geom_bar(stat = "identity", fill = "steelblue") +
   geom_hline(yintercept = 0.05, linetype = "dashed", color = "red") +
-  labs(title = "Kruskal-Wallis p-values by Illness",
+  labs(title = "Kruskal-Wallis p-values by Illness for Regional Groupings",
        x = "Illness",
        y = "p-value") +
   geom_text(aes(label = sprintf("%.4f", p_value)), vjust = -0.5) +
@@ -1176,7 +1216,7 @@ results <- results[-10, ]
 ggplot(results, aes(x = Illness, y = p_value)) +
   geom_bar(stat = "identity", fill = "steelblue") +
   geom_hline(yintercept = 0.05, linetype = "dashed", color = "red") +
-  labs(title = "Kruskal-Wallis p-values by Illness",
+  labs(title = "Kruskal-Wallis p-values by Illness for Alabama",
        x = "Illness",
        y = "p-value") +
   geom_text(aes(label = sprintf("%.4f", p_value)), vjust = -0.5) +
@@ -1214,7 +1254,7 @@ results <- results[-10, ]
 ggplot(results, aes(x = Illness, y = p_value)) +
   geom_bar(stat = "identity", fill = "steelblue") +
   geom_hline(yintercept = 0.05, linetype = "dashed", color = "red") +
-  labs(title = "Kruskal-Wallis p-values by Illness",
+  labs(title = "Kruskal-Wallis p-values by Illness for Georgia",
        x = "Illness",
        y = "p-value") +
   geom_text(aes(label = sprintf("%.4f", p_value)), vjust = -0.5) +
@@ -1248,7 +1288,7 @@ results <- results[-10, ]
 ggplot(results, aes(x = Illness, y = p_value)) +
   geom_bar(stat = "identity", fill = "steelblue") +
   geom_hline(yintercept = 0.05, linetype = "dashed", color = "red") +
-  labs(title = "Kruskal-Wallis p-values by Illness",
+  labs(title = "Kruskal-Wallis p-values by Illness for Louisiana",
        x = "Illness",
        y = "p-value") +
   geom_text(aes(label = sprintf("%.4f", p_value)), vjust = -0.5) +
@@ -1281,7 +1321,7 @@ results <- results[-10, ]
 ggplot(results, aes(x = Illness, y = p_value)) +
   geom_bar(stat = "identity", fill = "steelblue") +
   geom_hline(yintercept = 0.05, linetype = "dashed", color = "red") +
-  labs(title = "Kruskal-Wallis p-values by Illness",
+  labs(title = "Kruskal-Wallis p-values by Illness for Ohio",
        x = "Illness",
        y = "p-value") +
   geom_text(aes(label = sprintf("%.4f", p_value)), vjust = -0.5) +
@@ -1315,7 +1355,7 @@ results <- results[-10, ]
 ggplot(results, aes(x = Illness, y = p_value)) +
   geom_bar(stat = "identity", fill = "steelblue") +
   geom_hline(yintercept = 0.05, linetype = "dashed", color = "red") +
-  labs(title = "Kruskal-Wallis p-values by Illness",
+  labs(title = "Kruskal-Wallis p-values by Illness for West Virginia",
        x = "Illness",
        y = "p-value") +
   geom_text(aes(label = sprintf("%.4f", p_value)), vjust = -0.5) +
@@ -1349,7 +1389,7 @@ results <- results[-10, ]
 ggplot(results, aes(x = Illness, y = p_value)) +
   geom_bar(stat = "identity", fill = "steelblue") +
   geom_hline(yintercept = 0.05, linetype = "dashed", color = "red") +
-  labs(title = "Kruskal-Wallis p-values by Illness",
+  labs(title = "Kruskal-Wallis p-values by Illness for Pennsylvania",
        x = "Illness",
        y = "p-value") +
   geom_text(aes(label = sprintf("%.4f", p_value)), vjust = -0.5) +
@@ -1370,7 +1410,7 @@ highest_illness_table <- state_means %>%
 
 highest_illness_table <- highest_illness_table %>%
   mutate(Illness = recode(Illness,
-                             "avgHighBP" = "High BP"))
+                             "avgHighBP" = "High BP  "))
   
 kable(highest_illness_table, caption = "Most Common Illness By State")
 ```
@@ -1389,4 +1429,7 @@ ggplot(data = cor_melted, aes(x = Var1, y = Var2, fill = value)) +
                                    size = 10, hjust = 1)) +
   coord_fixed()
 ```
+
 There is a strong negative correlation between binge drinking and all the other variables, as well as a very low correlation between cancer and all the other variables.
+
+
