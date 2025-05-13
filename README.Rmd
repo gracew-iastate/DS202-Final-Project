@@ -125,6 +125,37 @@ map_data_combined <- left_join(us_states_sf, state_means, by = c("NAME" = "State
 
 ```
 
+
+The left join the health averages data with geographic data from the sf
+package. This will let us map the data later.
+
+City Count By State
+
+``` {R}
+city_count_by_state <- health %>%
+  group_by(StateDesc) %>%
+  summarise(city_count = n_distinct(CityName)) %>% arrange(desc(city_count)) # Use n() if duplicates are allowed
+
+# View result
+print(city_count_by_state)
+```
+
+
+``` {R}
+ggplot(city_count_by_state, aes(x = reorder(StateDesc, city_count), y = city_count)) +
+  geom_col() +
+  labs(title = "Number of Cities per State",
+       x  = NULL,
+       y = "Number of Cities") +
+  scale_y_continuous(expand = expansion(mult = c(0.05, 0.05))) +
+  coord_flip() +
+  theme_void() +
+  theme(axis.text.y = element_text(size = 7),
+        axis.text.x = element_text(size = 11),
+        axis.title = element_text(size = 12))
+```
+
+
 Now we make the maps and box plots
 
 Mental Illness Map
@@ -166,6 +197,8 @@ ggplot(formatting) +
 
 
 ```
+
+This chunk prepares geographic data and visualizes the average mental illness rate by state using a choropleth map.
 
 Mental Illness Box Plot Desc
 
@@ -220,6 +253,8 @@ ggplot() +
 
 ```
 
+This chunk highlights states with the highest and lowest average mental illness rates using box plots, with remaining states show as summary points.
+
 Binge Drinking Map
 
 ```{R}
@@ -245,6 +280,8 @@ ggplot(formatting) +
     legend.text = element_text(size = 8)
   )
 ```
+
+This chunk prepares geographic data and visualizes the average binge drinking rate by state using a choropleth map.
 
 Binge Drinking Box Plot Desc
 
@@ -299,6 +336,8 @@ ggplot() +
 
 ```
 
+This chunk highlights states with the highest and lowest average binge drinking rates using box plots, with remaining states show as summary points.
+
 Asthma Map
 
 ```{R}
@@ -324,6 +363,8 @@ ggplot(formatting) +
     legend.text = element_text(size = 8)
   )
 ```
+
+This chunk prepares geographic data and visualizes the average asthma rate by state using a choropleth map.
 
 Childhood Asthma Box Plot Desc
 
@@ -378,6 +419,8 @@ ggplot() +
 
 ```
 
+This chunk highlights states with the highest and lowest average childhood asthma rates using box plots, with remaining states show as summary points.
+
 Arthritis Map
 
 ```{R}
@@ -403,6 +446,8 @@ ggplot(formatting) +
     legend.text = element_text(size = 8)
   )
 ```
+
+This chunk prepares geographic data and visualizes the average asthma rate by state using a choropleth map.
 
 Arthritis Box Plot Desc
 
@@ -457,6 +502,8 @@ ggplot() +
 
 ```
 
+This chunk highlights states with the highest and lowest average arthritis rates using box plots, with remaining states show as summary points.
+
 Kidney Disease Map
 
 ```{R}
@@ -482,6 +529,8 @@ ggplot(formatting) +
     legend.text = element_text(size = 8)
   )
 ```
+
+This chunk prepares geographic data and visualizes the average kidney disease rate by state using a choropleth map.
 
 Kidney Disease Box Plot Desc
 
@@ -536,6 +585,8 @@ ggplot() +
 
 ```
 
+This chunk highlights states with the highest and lowest average kidney disease rates using box plots, with remaining states show as summary points.
+
 High Blood Pressure Map
 
 ```{R}
@@ -561,6 +612,8 @@ ggplot(formatting) +
     legend.text = element_text(size = 8)
   )
 ```
+
+This chunk prepares geographic data and visualizes the average high blood pressure rate by state using a choropleth map.
 
 High Blood Pressure Box Plot Desc
 
@@ -615,6 +668,8 @@ ggplot() +
 
 ```
 
+This chunk highlights states with the highest and lowest average high blood pressure rates using box plots, with remaining states show as summary points.
+
 Cancer Map
 
 ```{R}
@@ -641,7 +696,9 @@ ggplot(formatting) +
 
 ```
 
-Childhood Box Plot Desc
+This chunk prepares geographic data and visualizes the average cancer rate by state using a choropleth map.
+
+Cancer Box Plot Desc
 
 ```{R}
 stored_means <- health %>%
@@ -694,6 +751,8 @@ ggplot() +
 
 ```
 
+This chunk highlights states with the highest and lowest average cancer rates using box plots, with remaining states show as summary points.
+
 Diabetes Map
 
 ```{R}
@@ -720,6 +779,8 @@ ggplot(formatting) +
     legend.text = element_text(size = 8))
 
 ```
+
+This chunk prepares geographic data and visualizes the average diabetes rate by state using a choropleth map.
 
 Childhood Box Plot Desc
 
@@ -774,6 +835,8 @@ ggplot() +
 
 ```
 
+This chunk highlights states with the highest and lowest average diabetes rates using box plots, with remaining states show as summary points.
+
 COPD Map
 
 ```{R}
@@ -800,6 +863,8 @@ ggplot(formatting) +
   )
 
 ```
+
+This chunk prepares geographic data and visualizes the average COPD rate by state using a choropleth map.
 
 COPD Box Plot Desc
 
@@ -855,6 +920,8 @@ ggplot() +
   scale_x_discrete(limits = levels(health$StateDesc), labels = function(x) ifelse(x %in% highlight_states, x, ""))  # Reverses the order on the x-axis
 
 ```
+
+This chunk highlights states with the highest and lowest average COPD rates using box plots, with remaining states show as summary points.
 
 Find Healthiest States
 
@@ -937,7 +1004,9 @@ healthiest <- healthiest %>%
 
 ```
 
-Make a chart
+This chunk identifies the top 5 states with the lowest rates for various health conditions such as mental illness, binge drinking, asthma, arthritis, cancer, and more. It stores them in a consolidated table for reporting.
+
+Visualize the Healthiest States by Condition
 
 ```{R}
 
@@ -1080,7 +1149,9 @@ ggplot(combined_counts, aes(x = reorder(state, n), y = n, fill = type)) +
 
 ```
 
-Make a chart
+This chunk identifies the top 5 states with the highest rates for various health conditions such as mental illness, binge drinking, asthma, arthritis, cancer, and more. It stores them in a consolidated table for reporting.
+
+Visualize the Least Healthy States by Condition
 
 ```{R}
 
@@ -1113,7 +1184,7 @@ Create a new grouping and perform Kruskal-Wallis analysis
 ```{R}
 
 
-group1_states <- c("Alabama", "Georgia", "Louisiana")
+group1_states <- c("Alabama", "Mississippi", "Louisiana")
 group2_states <- c("Ohio", "West Virginia", "Pennsylvania")
 
 
@@ -1195,7 +1266,7 @@ ggplot(results, aes(x = Illness, y = p_value)) +
 ```{R}
 
 
-group1_states <- c("Georgia")
+group1_states <- c("Mississippi")
 
 
 state_means$Group <- ifelse(state_means$StateDesc %in% group1_states, "Group1","Group2")
@@ -1218,7 +1289,7 @@ results <- results[-10, ]
 ggplot(results, aes(x = Illness, y = p_value)) +
   geom_bar(stat = "identity", fill = "steelblue") +
   geom_hline(yintercept = 0.05, linetype = "dashed", color = "red") +
-  labs(title = "Kruskal-Wallis p-values by Illness for Georgia",
+  labs(title = "Kruskal-Wallis p-values by Illness for Mississippi",
        x = "Illness",
        y = "p-value") +
   geom_text(aes(label = sprintf("%.4f", p_value)), vjust = -0.5) +
@@ -1388,6 +1459,57 @@ kable(highest_illness_table, caption = "Most Common Illness By State")
 Here, we looked at which illness was the most common for each state. We
 can see that across the board, the most common illness is high blood
 pressure.
+
+This chunk creates a line chart to compare the five highest values for
+each health condition across states. It uses a log scale for clearer
+separation of small differences.
+
+Find Correlation between the number of states and
+
+```{R}
+vals1 <- unlist(healthiest[ , -1], use.names = FALSE)
+vals2 <- unlist(leastHealthy[ , -1], use.names = FALSE)
+
+df1 <- as.data.frame(table(vals1), stringsAsFactors = FALSE)
+df2 <- as.data.frame(table(vals2), stringsAsFactors = FALSE)
+
+# Rename columns for clarity
+colnames(df1) <- c("StateDesc", "count_df1")
+colnames(df2) <- c("StateDesc", "count_df2")
+
+
+combined <- merge(df1, df2, by = "StateDesc", all = TRUE)
+
+
+combined[is.na(combined)] <- 0
+
+combined <- merge(combined, city_count_by_state, by = "StateDesc", all = TRUE)
+
+combined$sum_count <- combined$count_df1 + combined$count_df2
+
+ggplot(combined, aes(x = sum_count, y = city_count)) +
+  geom_point(size = 3, color = "blue") +
+  labs(
+    x = "Sum of Extreme Counts (count_df1 + count_df2)",
+    y = "Number of Cities",
+    title = "Relationship Between Extreme Counts and Number of Cities"
+  ) +
+  theme_minimal() +
+  scale_y_continuous(trans='log10')
+```
+
+
+```{R}
+model <- lm(city_count ~ sum_count, data = combined)
+summary(model)$r.squared
+```
+
+The dotplot I made, as well as the calculated r-squared value of 0.063
+shows that there is a low correlation between the number of cities in a
+state and the number of times a given state appears in either the top or
+bottom 5 healthiest states.
+
+
 
 ```{r}
 numeric_data <- state_means[sapply(state_means, is.numeric)]
