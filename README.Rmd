@@ -46,11 +46,7 @@ library(knitr)
 
 ```
 
-
-
-
-
-``` {R}
+```{R}
 
 state_means <- healthwfips %>%
   group_by(StateDesc) %>%
@@ -80,7 +76,6 @@ state_means$StateDesc[state_means$StateDesc == "South Carolin"] <- "South Caroli
 state_means$StateDesc[state_means$StateDesc == "North Carolin"] <- "North Carolina"
 
 ```
-
 
 Prepare the data to map by state
 
@@ -130,12 +125,10 @@ map_data_combined <- left_join(us_states_sf, state_means, by = c("NAME" = "State
 
 ```
 
-
-
 Now we make the maps and box plots
 
-
 Mental Illness Map
+
 ```{R}
 
 # Plot full map with AK/HI shifted
@@ -173,7 +166,6 @@ ggplot(formatting) +
 
 
 ```
-
 
 Mental Illness Box Plot Desc
 
@@ -228,9 +220,8 @@ ggplot() +
 
 ```
 
-
-
 Binge Drinking Map
+
 ```{R}
 ggplot(formatting) +
   geom_sf(aes(fill = avgBingeDrinking))+
@@ -254,7 +245,6 @@ ggplot(formatting) +
     legend.text = element_text(size = 8)
   )
 ```
-
 
 Binge Drinking Box Plot Desc
 
@@ -309,9 +299,6 @@ ggplot() +
 
 ```
 
-
-
-
 Asthma Map
 
 ```{R}
@@ -337,7 +324,6 @@ ggplot(formatting) +
     legend.text = element_text(size = 8)
   )
 ```
-
 
 Childhood Asthma Box Plot Desc
 
@@ -392,9 +378,8 @@ ggplot() +
 
 ```
 
-
-
 Arthritis Map
+
 ```{R}
 ggplot(formatting) +
   geom_sf(aes(fill = avgArthritis)) +
@@ -418,7 +403,6 @@ ggplot(formatting) +
     legend.text = element_text(size = 8)
   )
 ```
-
 
 Arthritis Box Plot Desc
 
@@ -473,9 +457,8 @@ ggplot() +
 
 ```
 
-
-
 Kidney Disease Map
+
 ```{R}
 ggplot(formatting) +
   geom_sf(aes(fill = avgKidneyDisease)) +
@@ -499,7 +482,6 @@ ggplot(formatting) +
     legend.text = element_text(size = 8)
   )
 ```
-
 
 Kidney Disease Box Plot Desc
 
@@ -554,8 +536,8 @@ ggplot() +
 
 ```
 
-
 High Blood Pressure Map
+
 ```{R}
 ggplot(formatting) +
   geom_sf(aes(fill = avgHighBP)) +
@@ -579,7 +561,6 @@ ggplot(formatting) +
     legend.text = element_text(size = 8)
   )
 ```
-
 
 High Blood Pressure Box Plot Desc
 
@@ -634,8 +615,8 @@ ggplot() +
 
 ```
 
-
 Cancer Map
+
 ```{R}
 ggplot(formatting) +
   geom_sf(aes(fill = avgCancer)) +
@@ -659,7 +640,6 @@ ggplot(formatting) +
     legend.text = element_text(size = 8))
 
 ```
-
 
 Childhood Box Plot Desc
 
@@ -714,8 +694,8 @@ ggplot() +
 
 ```
 
-
 Diabetes Map
+
 ```{R}
 
 ggplot(formatting) +
@@ -740,7 +720,6 @@ ggplot(formatting) +
     legend.text = element_text(size = 8))
 
 ```
-
 
 Childhood Box Plot Desc
 
@@ -795,8 +774,8 @@ ggplot() +
 
 ```
 
-
 COPD Map
+
 ```{R}
 ggplot(formatting) +
   geom_sf(aes(fill = avgCOPD)) +
@@ -876,7 +855,6 @@ ggplot() +
   scale_x_discrete(limits = levels(health$StateDesc), labels = function(x) ifelse(x %in% highlight_states, x, ""))  # Reverses the order on the x-axis
 
 ```
-
 
 Find Healthiest States
 
@@ -960,6 +938,7 @@ healthiest <- healthiest %>%
 ```
 
 Make a chart
+
 ```{R}
 
 smallest_values <- state_means %>%
@@ -985,17 +964,6 @@ ggplot(smallest_values, aes(x = Rank, y = value, color = Variable)) +
 
 
 ```
-
-
-
-
-
-
-
-
-
-
-
 
 Find Least Healthy States
 
@@ -1112,13 +1080,8 @@ ggplot(combined_counts, aes(x = reorder(state, n), y = n, fill = type)) +
 
 ```
 
-
-
-
-
-
-
 Make a chart
+
 ```{R}
 
 biggest_values <- state_means %>%
@@ -1145,12 +1108,8 @@ ggplot(biggest_values, aes(x = Rank, y = value, color = Variable)) +
 
 ```
 
-
-
-
-
-
 Create a new grouping and perform Kruskal-Wallis analysis
+
 ```{R}
 
 
@@ -1189,6 +1148,13 @@ ggplot(results, aes(x = Illness, y = p_value)) +
 
 ```
 
+We can see here that many of these values fall well below the red line
+at 0.05 that denotes the point at which we decide the p-value is
+generally considered statistically significant. Furthermore, arthritis,
+COPD, Diabetes, Kidney Disease, and Mental illness all have a p-value of
+less than 0.01, which shows that the groupings of states which we chose
+are statistically significant in how prominent the various illnesses we
+chose are.
 
 ```{R}
 
@@ -1225,8 +1191,6 @@ ggplot(results, aes(x = Illness, y = p_value)) +
   scale_y_continuous(expand = expansion(mult = c(0, 0.1)))
 
 ```
-
-
 
 ```{R}
 
@@ -1297,6 +1261,7 @@ ggplot(results, aes(x = Illness, y = p_value)) +
   scale_y_continuous(expand = expansion(mult = c(0, 0.1)))
 
 ```
+
 ```{R}
 group1_states <- c("Ohio")
 
@@ -1365,6 +1330,13 @@ ggplot(results, aes(x = Illness, y = p_value)) +
 
 ```
 
+West Virginia has the lowest p-values across the board, indicating that,
+of the states with poor health, it is the most statistically
+significant. None of its p-values are below 0.05, but it's still
+important to note how much closer it is compared to the other states. Of
+course, the Kruskal-Wallis test isn't necessarily intended to be used in
+this manner, so it's a pretty rough outline.
+
 ```{R}
 group1_states <- c("Pennsylvania")
 
@@ -1399,8 +1371,6 @@ ggplot(results, aes(x = Illness, y = p_value)) +
 
 ```
 
-
-
 ```{r}
 highest_illness_table <- state_means %>% 
   select(-Group) %>% 
@@ -1414,6 +1384,10 @@ highest_illness_table <- highest_illness_table %>%
   
 kable(highest_illness_table, caption = "Most Common Illness By State")
 ```
+
+Here, we looked at which illness was the most common for each state. We
+can see that across the board, the most common illness is high blood
+pressure.
 
 ```{r}
 numeric_data <- state_means[sapply(state_means, is.numeric)]
@@ -1430,6 +1404,21 @@ ggplot(data = cor_melted, aes(x = Var1, y = Var2, fill = value)) +
   coord_fixed()
 ```
 
-There is a strong negative correlation between binge drinking and all the other variables, as well as a very low correlation between cancer and all the other variables. There's also a strong correlation between kidney disease and diabetes, as well as kidney disease and high blood pressure.
+There is a strong negative correlation between binge drinking and all
+the other variables, as well as a very low correlation between cancer
+and all the other variables. There's also a strong correlation between
+kidney disease and diabetes, as well as kidney disease and high blood
+pressure.
 
+### Conclusion
 
+The most healthy states to live in are Utah, Vermont, North Dakota, and
+Minnesota. The least healthy states are West Virginia, Ohio, Delaware,
+and Louisiana. West Virginia is significantly less healthy than the rest
+of the nation. For further research, we could examine why West Virginia
+is so unhealthy, and why some sections of the country are significantly
+less healthy than others.
+
+Additionally, we discovered that childhood asthma is very common in
+Appalachia. For further research, we could examine if there are any
+cultural causes for higher rates of asthma.
