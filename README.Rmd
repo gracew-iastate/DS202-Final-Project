@@ -1227,9 +1227,7 @@ less than 0.01, which shows that the groupings of states which we chose
 are statistically significant in how prominent the various illnesses we
 chose are.
 
-```{R}
-
-
+```
 group1_states <- c("Alabama")
 
 
@@ -1263,9 +1261,7 @@ ggplot(results, aes(x = Illness, y = p_value)) +
 
 ```
 
-```{R}
-
-
+```
 group1_states <- c("Mississippi")
 
 
@@ -1299,7 +1295,7 @@ ggplot(results, aes(x = Illness, y = p_value)) +
 
 ```
 
-```{R}
+```
 group1_states <- c("Louisiana")
 
 
@@ -1333,7 +1329,7 @@ ggplot(results, aes(x = Illness, y = p_value)) +
 
 ```
 
-```{R}
+```
 group1_states <- c("Ohio")
 
 
@@ -1367,7 +1363,7 @@ ggplot(results, aes(x = Illness, y = p_value)) +
 
 ```
 
-```{R}
+```
 group1_states <- c("West Virginia")
 
 
@@ -1408,7 +1404,7 @@ important to note how much closer it is compared to the other states. Of
 course, the Kruskal-Wallis test isn't necessarily intended to be used in
 this manner, so it's a pretty rough outline.
 
-```{R}
+```
 group1_states <- c("Pennsylvania")
 
 
